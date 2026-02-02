@@ -1,0 +1,30 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Empresa {
+  id        String   @id @default(uuid())
+  nome      String
+  cnpj      String   @unique
+  tokenUai  String?
+  createdAt DateTime @default(now())
+  
+  // Adicione esta linha para completar a relação:
+  usuarios  Usuario[] 
+}
+
+model Usuario {
+  id        String   @id @default(uuid())
+  nome      String
+  email     String   @unique
+  senha     String
+  tenant_id String
+  createdAt DateTime @default(now())
+
+  empresa   Empresa  @relation(fields: [tenant_id], references: [id])
+}
