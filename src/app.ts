@@ -1,5 +1,4 @@
 import express from 'express';
-import { tenantMiddleware } from './infrastructure/http/middlewares/TenantMiddleware';
 // Importaremos as rotas aqui futuramente
 
 const app = express();
