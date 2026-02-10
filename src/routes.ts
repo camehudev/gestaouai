@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { UaiRangoController } from '../src/infrastructure/http/controllers/UaiRangoController';
-import { authMiddleware } from 'middlewares/authMiddleware';
+import { authMiddleware } from './middlewares/auth-middleware';
 
 export const router = Router();
 const uaiController = new UaiRangoController();
