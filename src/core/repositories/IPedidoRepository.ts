@@ -1,4 +1,4 @@
-import { Pedido } from "../entities/Pedido";
+import { Pedido } from "../entities/Pedidos";
 
 export interface IPedidoRepository {
   save(pedido: Pedido): Promise<void>;

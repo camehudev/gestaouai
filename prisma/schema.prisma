@@ -7,15 +7,30 @@ generator client {
   provider = "prisma-client-js"
 }
 
+enum PedidoStatus {
+  RECEIVED
+  CONFIRMED
+  DISPATCHED
+  READY
+  CANCELLED
+  PENDING
+  SHIPPED
+  DELIVERED
+  READY_TO_PICKUP
+}
+
 model Empresa {
-  id        String   @id @default(uuid())
-  nome      String
-  cnpj      String   @unique
-  tokenUai  String?
-  createdAt DateTime @default(now())
-  
-  // Adicione esta linha para completar a relação:
-  usuarios  Usuario[] 
+  id             String    @id @default(uuid())
+  nome           String
+  cnpj           String    @unique
+  tenant_id      String?
+  tokenUai       String?
+  configUaiRango Json?
+  createdAt      DateTime  @default(now())
+
+  usuarios       Usuario[]
+  produtos       Produto[]
+  pedidos        Pedido[]
 }
 
 model Usuario {
@@ -27,4 +42,53 @@ model Usuario {
   createdAt DateTime @default(now())
 
   empresa   Empresa  @relation(fields: [tenant_id], references: [id])
+}
+
+model Produto {
+  id                  String   @id @default(uuid())
+  externalId          String?  @unique
+  externalCode        String?
+  nome                String
+  descricao           String?
+  informacaoAdicional String?
+  serving             String?
+  peso                Float?
+  
+  tenant_id           String
+  empresa             Empresa  @relation(fields: [tenant_id], references: [id])
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+model Pedido {
+  id               String           @id @default(uuid())
+  uairango_id      String           @unique
+  externalId       String?          @unique
+  displayId        String?
+  status           PedidoStatus     @default(RECEIVED)
+  valorTotal       Float            @default(0.0)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  tenant_id        String
+  empresa          Empresa          @relation(fields: [tenant_id], references: [id])
+  
+  historico        PedidoHistorico[]
+
+  usuarioId        String?
+  motivoCancelamentoId String?
+
+  @@index([tenant_id])
+}
+
+model PedidoHistorico {
+  id        String       @id @default(uuid())
+  pedido_id String
+  status    PedidoStatus
+  createdAt DateTime     @default(now())
+
+  pedido    Pedido       @relation(fields: [pedido_id], references: [id])
+
+  @@index([pedido_id])
 }

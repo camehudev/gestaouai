@@ -6,6 +6,7 @@ export class Pagamento {
     public bandeiraCartao?: string,
     public valorTroco?: number,
     public cupomCodigo?: string,
-    public cupomValor?: number
+    public cupomValor?: number,
+    public tenant_id?: number
   ) {}
 }
