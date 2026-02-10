@@ -5,12 +5,9 @@
   "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "build": "prisma generate && tsup src/server.ts --out-dir dist",
-    "start": "node dist/server.js",
-    "prisma:generate": "prisma generate --schema=./prisma/schema.prisma",
-    "prisma:migrate": "prisma migrate dev --schema=./prisma/schema.prisma",
-    "prisma:seed": "ts-node prisma/seed.ts",   
-    "postinstall": "prisma generate"
+    "build": "prisma generate", 
+    "postinstall": "prisma generate",
+    "start": "node dist/server.js"
   },
   "dependencies": {
     "@prisma/client": "^6.19.2",

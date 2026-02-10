@@ -1,17 +1,12 @@
 import express from 'express';
-// Importaremos as rotas aqui futuramente
+import cors from 'cors';
+import { router } from './routes';
 
 const app = express();
 
-// Middlewares Globais
+app.use(cors());
 app.use(express.json());
+app.use(router);
 
-// Exemplo de rota de Health Check (sem proteção de tenant)
-app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'Gestão UAI Server is running' });
-});
-
-// A partir daqui, as rotas de negócio usariam o middleware de tenant
-// app.use('/api/v1', tenantMiddleware, businessRoutes);
-
-export { app };
+// O SEGREDO: Exportação compatível com Vercel
+export default app;
