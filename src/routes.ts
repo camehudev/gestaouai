@@ -14,11 +14,10 @@ router.use('/uairango/v1', authMiddleware);
  */
 
 
-router.post('/uairango/v1/confirmar/:tenantId', (req, res) => uaiController.confirmEvents(req, res));
+router.post('/uairango/v1/confirmar/:tenantId', (req, res) => uaiController.confirmarProcessamentoPelaRota(req, res));
 router.get('/uairango/v1/token/:tenant_id', (req, res) => uaiController.getTokenByTenant(req, res));
 router.get('/uairango/v1/pedidos/:tenantId', (req, res) => uaiController.getPolling(req, res));
-// router.post('/uairango/confirmar/:tenantId', uaiController.confirmEvents);
-
+router.get('/uairango/pedido/:id', uaiController.getDetails);
 
 
 // Futura rota de pedidos que você vai precisar para a homologação:

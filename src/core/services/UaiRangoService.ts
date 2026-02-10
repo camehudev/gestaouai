@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { PrismaClient } from '@prisma/client';
 import { ConfigUaiRango } from '../entities/Empresas';
+import { config } from 'process';
 
 const prisma = new PrismaClient();
 
@@ -55,8 +56,7 @@ export class UaiRangoService {
       });
 
       return data as AuthResponse;
-    } catch (error: any) {
-      console.error('❌ Resposta Detalhada da UaiRango:', error.response?.data || error.message);
+    } catch (error: any) {   
       // Se continuar dando 401, o problema é a permissão da sua chave no portal UaiRango
       throw new Error(`Falha na autenticação: ${error.response?.status} - ${JSON.stringify(error.response?.data)}`);
     }
@@ -91,7 +91,7 @@ export class UaiRangoService {
     return data || [];
   }
 
-  async confirmarRecebimento(empresaId: string, config: any, eventIds: string[]) {
+  async confirmarRecebimento(empresaId: string, config: ConfigUaiRango, eventIds: string[]) {
     const token = await this.getValidToken(empresaId, config);
     const url = 'https://merchant-api.uairango.com/events/v1.0/events/acknowledgment';
     
@@ -105,7 +105,7 @@ export class UaiRangoService {
     return true;
   }
 
-  async salvarPedidoNoBanco(empresaId: string, tenantId: string, evento: any) {
+  async salvarPedidoNoBanco(tenantId: string, evento: any) {
     try {
       const { code, orderId, createdAt } = evento;
 
@@ -146,9 +146,8 @@ export class UaiRangoService {
      
       return pedidoSalvo;
 
-    } catch (error: any) {
-      console.error(`❌ Erro ao salvar pedido:`, error.message);
-      throw error;
+    } catch (error: any) { 
+      throw error.message;
     }
   }
 
@@ -170,10 +169,33 @@ export class UaiRangoService {
         createdAt: data.createdAt
       };
 
-      return await this.salvarPedidoNoBanco(empresaId, empresaId, eventoSimulado);
-    } catch (error: any) {
-      console.error('❌ Detalhes da busca por ID:', error.response?.data || error.message);
-      throw error;
+      return await this.salvarPedidoNoBanco(empresaId, empresaId,);
+    } catch (error: any) {     
+      throw error.response?.data || error.message;
     }
   }
+
+
+  async getPedidoDetalhes(tenantId: string, pedidoId: string, token: string) {
+    try {
+      const response = await axios.get(`https://merchant-api.uairango.com/order/v1.0/orders/${pedidoId}`, {
+        headers: {
+          // Agora usamos o token que veio do banco
+          'Authorization': `Bearer ${token}`,
+          'x-env': 'development',
+          'x-api-key': process.env.API_KEY, 
+          'tenant-id': tenantId
+        }
+      });
+
+      return response.data;
+      
+    } catch (error: any) {     
+      return error.response?.data || error.message; 
+    }
+}
+  
+
+
+
 }
