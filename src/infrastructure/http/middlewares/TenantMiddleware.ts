@@ -12,6 +12,6 @@ export const tenantMiddleware = (req: Request, res: Response, next: NextFunction
     });
   }
 
-  req.tenantId = tenantId;
+  (req as any).tenantId = tenantId;
   next();
 };

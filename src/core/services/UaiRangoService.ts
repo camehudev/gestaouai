@@ -91,6 +91,8 @@ export class UaiRangoService {
     return data || [];
   }
 
+  //Este metodo confirma que um evento foi recebido e processado, evitando que ele seja enviado novamente no polling
+
   async confirmarRecebimento(empresaId: string, config: ConfigUaiRango, eventIds: string[]) {
     const token = await this.getValidToken(empresaId, config);
     const url = 'https://merchant-api.uairango.com/events/v1.0/events/acknowledgment';
@@ -126,8 +128,7 @@ export class UaiRangoService {
           updatedAt: new Date()
         },
         create: {
-          uairango_id: orderId,
-          externalId: orderId,
+          uairango_id: orderId,          
           displayId: orderId.substring(0, 5).toUpperCase(),
           status: statusFinal,
           valorTotal: 0.0,
@@ -194,8 +195,115 @@ export class UaiRangoService {
       return error.response?.data || error.message; 
     }
 }
-  
 
 
+async confirmarPedidoUaiRango(tenantId:string, config: any, orderId: string): Promise<any> {
 
+    try {
+      // Endpoint oficial conforme fornecido
+      const url = `https://merchant-api.uairango.com/order/v1.0/orders/${orderId}/confirm`;
+
+      const response = await axios.post(
+        url,
+        {}, // O endpoint não exige corpo, apenas o ID na URL
+        {
+          headers: {
+            'Authorization': `Bearer ${config?.access_token}`,
+            'Content-Type': 'application/json',
+            'accept': 'application/json',
+            'x-env': 'development',
+            'x-api-key': process?.env.API_KEY, 
+            'tenant-id': tenantId
+          }
+        }
+      );
+
+      return response.data;
+    } catch (error: any) {
+
+      // Tratamento de erro detalhado para facilitar o debug no log
+      const status = error.response?.status;
+      const message = error.response?.data?.message || error.message;
+      
+      console.error(`[UaiRango API] Erro ao confirmar pedido ${orderId}: ${status} - ${message}`);
+      
+      throw new Error(`Falha ao confirmar pedido na UaiRango: ${message}`);
+    }
+
+  }
+
+
+  async pedidoProntoRetirada(tenantId: string, config: any, orderId: string): Promise<any> {
+  try {
+    // Endpoint oficial de confirmação
+    const url = `https://merchant-api.uairango.com/order/v1.0/orders/${orderId}/readyToPickup`;
+
+    const response = await axios.post(
+      url,
+      {}, // Corpo vazio obrigatório para POST
+      {
+        headers: {
+          // Usando o access_token que vem das configurações da empresa
+          'Authorization': `Bearer ${config?.access_token}`,
+          'Content-Type': 'application/json',
+          'accept': 'application/json',
+          'x-env': 'development', // Ambiente de desenvolvimento
+          'x-api-key': process.env.API_KEY, // Sua chave de API do .env
+          'tenant-id': tenantId // O ID da empresa que está operando
+        }
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    // Log detalhado para identificar se o erro é 400 (regra de negócio) ou 401 (token)
+    const status = error.response?.status;
+    const errorData = error.response?.data;
+    
+    console.error(`[UaiRango API] Erro no Confirm (${orderId}):`, {
+      status,
+      detalhes: errorData,
+      message: error.message
+    });
+    
+    // Lançamos um erro com a mensagem vinda da UaiRango se disponível
+    const errorMessage = errorData?.message || "Erro desconhecido na API UaiRango";
+    throw new Error(`Falha ao confirmar pedido: ${errorMessage}`);
+  }
+}
+
+
+async despacharPedidoUaiRango(tenantId: string, config: any, orderId: string): Promise<any> {
+  try {
+    const url = `https://merchant-api.uairango.com/order/v1.0/orders/${orderId}/dispatch`;
+
+    const response = await axios.post(
+      url,
+      {}, // Corpo vazio
+      {
+        headers: {
+          'Authorization': `Bearer ${config?.access_token}`,
+          'Content-Type': 'application/json',
+          'accept': 'application/json',
+          'x-env': 'development',
+          'x-api-key': process.env.API_KEY,
+          'tenant-id': tenantId
+        }
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    const status = error.response?.status;
+    const errorData = error.response?.data;
+    
+    console.error(`[UaiRango API] Erro no Dispatch (${orderId}):`, {
+      status,
+      detalhes: errorData
+    });
+    
+    const errorMessage = errorData?.message || "Erro ao despachar na API UaiRango";
+    throw new Error(errorMessage);
+  }
+}
 }

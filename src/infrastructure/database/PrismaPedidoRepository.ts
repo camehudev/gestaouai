@@ -14,8 +14,7 @@ export class PrismaPedidoRepository implements IPedidoRepository {
       },
       create: {
         id: pedido.id,
-        uairango_id: pedido.externalId, // <--- ADICIONADO: O Prisma estava reclamando da falta deste campo
-        externalId: pedido.externalId,
+        uairango_id: pedido.externalId, // <--- ADICIONADO: O Prisma estava reclamando da falta deste campo        
         displayId: pedido.externalId.substring(0, 5).toUpperCase(), // Útil para painéis de cozinha
         tenant_id: pedido.tenant_id,
         status: pedido.status as any,

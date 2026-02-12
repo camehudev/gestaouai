@@ -4,7 +4,7 @@
     "module": "CommonJS",
     "lib": ["ES2020"],
     "moduleResolution": "node",
-    "baseUrl": ".",
+    "baseUrl": "./",
     "paths": {
       "*": ["node_modules/*", "src/*"]
     },

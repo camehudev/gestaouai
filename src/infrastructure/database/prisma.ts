@@ -7,7 +7,7 @@ export const prisma =
   new PrismaClient({
     datasources: {
       db: {
-        url: process.env.DATABASE_URL, // Força o uso da variável de ambiente
+        url: process.env.DATABASE_URL || process.env.DATABASE_URL, // Força o uso da variável de ambiente
       },
     },
   });

@@ -17,7 +17,7 @@ export class PrismaEmpresaRepository {
       registro.id,
       registro.nome,
       registro.cnpj,
-      registro.tokenUai || undefined,
+      registro.tokenUai || "",
       registro.configUaiRango as any // Aqui estão o seu ClientId e Secret
     );
   }

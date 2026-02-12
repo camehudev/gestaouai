@@ -54,7 +54,6 @@ export class UaiRangoController {
         return res.json({ mensagem: "Nenhum evento novo.", processados: 0, pedidos: [] });
       } 
       
-      
 
       // 3. Processamento (Enriquecendo com detalhes)
       const pedidosDetalhados: any[] = [];
@@ -102,7 +101,7 @@ export class UaiRangoController {
     });
 
   } catch (error: any) {   
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ error});
   }
 }
 
@@ -171,4 +170,94 @@ async confirmarProcessamentoPelaRota(req: Request, res: Response) {
       return res.status(400).json({ error: error.message });
     }
 }
+
+
+async confirmarAceite(req: Request, res: Response) {
+
+  // 1. O orderId vem da URL (ex: /pedidos/88232/confirmar)
+  const { orderId } = req.params; 
+
+  // 2. O tenantId vem do seu middleware (injetado via JWT ou Header)
+   const tenant = req.headers.tenantid || req.headers['x-tenant-id']; // Ajuste conforme seu middleware   
+
+   if (!tenant) {
+     return res.status(400).json({ error: "Tenant ID é obrigatório no header." });
+   }
+
+   const tenantId = tenant.toString(); // Garantindo que seja string
+
+  try {
+    // Busca a empresa no banco para pegar o TOKEN da UaiRango dela
+    const empresa = await prisma.empresa.findUnique({ where: { id: tenantId } });    
+
+    // Chama o Service que agora usa a URL: 
+    //https://merchant-api.uairango.com/order/v1.0/orders/${orderId}/confirm
+    await uaiService.confirmarPedidoUaiRango(tenantId, empresa?.configUaiRango, orderId);
+
+    return res.json({ message: "Sucesso!" });
+
+  } catch (error: any) {
+    if (error.response) {
+        // A API respondeu com um erro (400, 401, 404, etc)
+        throw new Error(`Erro ${error.response.status}: ${error.response.data?.message || 'Erro desconhecido da API UaiRango'}`);
+        
+    } else {        
+        throw new Error(`Erro na requisição: ${error.message}`);
+    }
+
+}
+
+}
+
+async marcarComoPronto(req: Request, res: Response) {
+  const { orderId } = req.params;
+  const tenant = req.headers.tenantid || req.headers['x-tenant-id'];
+  const tenantId = tenant?.toString();
+
+  try {
+    const empresa = await prisma.empresa.findUnique({ where: { id: tenantId } });
+    if (!empresa) return res.status(404).json({ error: "Empresa não encontrada." });
+
+    // Chamada para o novo método do Service
+    await uaiService.pedidoProntoRetirada(tenantId!, empresa.configUaiRango, orderId);
+
+    // Opcional: Atualizar status local
+    // await prisma.pedido.update({ where: { uairango_id: orderId }, data: { status: 'READY' } });
+
+    return res.json({ success: true, message: "Pedido pronto para retirada!" });
+  } catch (error: any) {
+    const statusCode = error.response?.status || 500;
+    return res.status(statusCode).json({ 
+      error: error.message 
+    });
+  }
+}
+
+async despacharPedido(req: Request, res: Response) {
+  const { orderId } = req.params;
+  const tenant = req.headers.tenantid || req.headers['x-tenant-id'];
+  const tenantId = tenant?.toString();
+
+  if (!tenantId) return res.status(400).json({ error: "Tenant ID ausente." });
+
+  try {
+    const empresa = await prisma.empresa.findUnique({ where: { id: tenantId } });
+    if (!empresa) return res.status(404).json({ error: "Empresa não encontrada." });
+
+    // 1. Notifica a UaiRango
+    await uaiService.despacharPedidoUaiRango(tenantId, empresa.configUaiRango, orderId);
+
+    // 2. Atualiza o banco local
+    await prisma.pedido.update({
+      where: { uairango_id: orderId },
+      data: { status: 'SAIU_PARA_ENTREGA' }
+    });
+
+    return res.json({ success: true, message: "Pedido marcado como 'Em Trânsito'!" });
+  } catch (error: any) {
+    const statusCode = error.response?.status || 500;
+    return res.status(statusCode).json({ error: error.message });
+  }
+}
+
 }
