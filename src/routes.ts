@@ -1,9 +1,11 @@
 import { Router } from 'express';
 import { UaiRangoController } from './infrastructure/http/controllers/UaiRangoController';
 import { authMiddleware } from './middlewares/auth-middleware';
+import { MerchantController } from 'infrastructure/http/controllers/merchante/MerchantController';
 
 export const router = Router();
 const uaiController = new UaiRangoController();
+const merchantController = new MerchantController();
 
 // Todas as rotas abaixo deste middleware exigirão a x-api-key
 router.use('/uairango/v1', authMiddleware);
@@ -33,7 +35,9 @@ router.post("/pedidos/:orderId/readyToPickup", (req, res) => uaiController.marca
 
 router.post("/pedidos/:orderId/despachar",(req, res) => uaiController.despacharPedido(req, res)
 );
-
+// Exemplo de chamada: GET http://localhost:3000/merchants/ID-DA-EMPRESA
+router.get('/merchants/:empresaId', (req, res, next) => {merchantController.listAllMerchant(req, res);
+});
 
 
 export default router;
