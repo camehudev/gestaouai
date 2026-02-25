@@ -39,5 +39,32 @@ router.post("/pedidos/:orderId/despachar",(req, res) => uaiController.despacharP
 router.get('/merchants/:empresaId', (req, res, next) => {merchantController.listAllMerchant(req, res);
 });
 
+// Rota para detalhes de uma loja específica
+router.get('/merchants/details/:merchantId/:empresaId', merchantController.getById.bind(merchantController));
+
+// Rota para status da loja
+router.get('/:empresaId/status/:merchantId', merchantController.getStatus.bind(merchantController));
+
+// Rota para status específico de Delivery
+router.get('/:empresaId/status/:merchantId/delivery', merchantController.getDeliveryStatus.bind(merchantController));
+
+// Rota para modificar status (Abrir/Fechar loja)
+router.patch('/:empresaId/status/:merchantId', merchantController.updateStatus.bind(merchantController));
+
+// ROTAS PAR O CATALOGO DE PRODUTOS
+
+    // Rota para listar catálogos
+    router.get('/:empresaId/catalogs/:merchantId', merchantController.getCatalogs.bind(merchantController));
+    // Rota para pegar o cardápio completo (Categorias + Itens)
+    router.get('/:empresaId/catalogs/:merchantId/:catalogId/items', merchantController.getCatalogDetails.bind(merchantController));
+    // Rota para criar categoria (POST)
+    router.post('/:empresaId/catalogs/:merchantId/:catalogId/categories', merchantController.createCategory.bind(merchantController));
+
+// Rota para Upsert de Item Completo
+  router.post('/:empresaId/items-full/:merchantId', merchantController.upsertItem.bind(merchantController));
+
+    // Rota para editar preço
+  router.post('/:empresaId/items/:merchantId/price', merchantController.updatePrice.bind(merchantController));
+
 
 export default router;

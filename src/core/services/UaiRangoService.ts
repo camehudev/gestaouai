@@ -1,7 +1,6 @@
 import axios from 'axios';
 import { PrismaClient } from '@prisma/client';
 import { ConfigUaiRango } from '../entities/Empresas';
-import { config } from 'process';
 
 const prisma = new PrismaClient();
 
@@ -12,8 +11,9 @@ interface AuthResponse {
 }
 
 export class UaiRangoService {
-  private readonly AUTH_URL = 'https://merchant-api.uairango.com/authentication/v1.0/oauth/token';
-
+  private readonly AUTH_URL = `${process.env.AUTH_URL}`;
+  
+  
   async getValidToken(empresaId: string, config: ConfigUaiRango): Promise<string> {
     const agora = new Date();
     
@@ -51,7 +51,8 @@ export class UaiRangoService {
           'Content-Type': 'application/x-www-form-urlencoded',
           'Accept': 'application/json',
           // IMPORTANTE: Mude para 'production' se não for ambiente de teste
-          'x-env': 'development' 
+          'x-env': 'development',
+          'x-api-key': `${process.env.API_KEY}`, 
         }
       });
 
@@ -85,7 +86,8 @@ export class UaiRangoService {
     const { data } = await axios.get(url, {
       headers: { 
         'Authorization': `Bearer ${token}`,
-        'x-env': 'development'
+        'x-env': 'development',
+        'x-api-key': `${process.env.API_KEY}`, 
       }
     });
     return data || [];
@@ -101,7 +103,8 @@ export class UaiRangoService {
     await axios.post(url, body, {
       headers: { 
         'Authorization': `Bearer ${token}`,
-        'x-env': 'development'
+        'x-env': 'development',
+        'x-api-key': `${process.env.API_KEY}`
       }
     });
     return true;
@@ -160,7 +163,8 @@ export class UaiRangoService {
       const { data } = await axios.get(url, {
         headers: {
           'Authorization': `Bearer ${token}`,
-          'x-env': 'development'
+          'x-env': 'development',
+          'x-api-key': `${process.env.API_KEY}`, 
         }
       });
 
@@ -184,7 +188,7 @@ export class UaiRangoService {
           // Agora usamos o token que veio do banco
           'Authorization': `Bearer ${token}`,
           'x-env': 'development',
-          'x-api-key': process.env.API_KEY, 
+          'x-api-key': `${process.env.API_KEY}`, 
           'tenant-id': tenantId
         }
       });
@@ -212,7 +216,7 @@ async confirmarPedidoUaiRango(tenantId:string, config: any, orderId: string): Pr
             'Content-Type': 'application/json',
             'accept': 'application/json',
             'x-env': 'development',
-            'x-api-key': process?.env.API_KEY, 
+            'x-api-key': `${process.env.API_KEY}`, 
             'tenant-id': tenantId
           }
         }
@@ -248,7 +252,7 @@ async confirmarPedidoUaiRango(tenantId:string, config: any, orderId: string): Pr
           'Content-Type': 'application/json',
           'accept': 'application/json',
           'x-env': 'development', // Ambiente de desenvolvimento
-          'x-api-key': process.env.API_KEY, // Sua chave de API do .env
+          'x-api-key': `${process.env.API_KEY}`, 
           'tenant-id': tenantId // O ID da empresa que está operando
         }
       }
@@ -286,7 +290,7 @@ async despacharPedidoUaiRango(tenantId: string, config: any, orderId: string): P
           'Content-Type': 'application/json',
           'accept': 'application/json',
           'x-env': 'development',
-          'x-api-key': process.env.API_KEY,
+          'x-api-key': `${process.env.API_KEY}`, 
           'tenant-id': tenantId
         }
       }
