@@ -218,4 +218,94 @@ async updatePrice(req: Request, res: Response) {
     });
   }
 }
+
+async updateItemStatus(req: Request, res: Response) {
+  try {
+    const { empresaId, merchantId } = req.params;
+    const statusData = req.body; // Ex: [{"id": "UUID", "status": "UNAVAILABLE"}]
+
+    if (!empresaId || !merchantId) {
+      return res.status(400).json({ error: 'Parâmetros insuficientes.' });
+    }
+
+    const result = await merchantService.updateItemStatus(empresaId, merchantId, statusData);
+    return res.status(200).json(result);
+
+  } catch (error: any) {
+    return res.status(error.response?.status || 500).json({
+      error: error.response?.data || 'Erro ao atualizar status do item.'
+    });
+  }
+}
+
+async getUserCode(req: Request, res: Response) {
+  try {
+    const { empresaId } = req.params;
+    
+    if (!empresaId) {
+      return res.status(400).json({ error: 'empresaId é obrigatório.' });
+    }
+
+    const authInfo = await merchantService.generateUserCode(empresaId);
+    
+    // Retornamos os dados para o frontend mostrar ao lojista
+    return res.status(200).json(authInfo);
+
+  } catch (error: any) {
+    return res.status(error.response?.status || 500).json({
+      error: error.response?.data || 'Erro ao gerar código de vínculo.'
+    });
+  }
+}
+
+async updateOptionPrice(req: Request, res: Response) {
+  try {
+    const { empresaId, merchantId } = req.params;
+    const prices = req.body; // Espera um array: [{ id: "uuid", price: 5.50 }]
+
+    if (!Array.isArray(prices)) {
+      return res.status(400).json({ error: 'O corpo da requisição deve ser um array de preços.' });
+    }
+
+    const result = await merchantService.updateOptionPrice(empresaId, merchantId, prices);
+    return res.status(200).json({
+      message: 'Preço do(s) complemento(s) atualizado(s) com sucesso',
+      //result
+    });
+
+  } catch (error: any) {
+    return res.status(error.response?.status || 500).json({
+      error: error.response?.data || 'Erro ao processar atualização de preços dos complementos.'
+    });
+  }
+}
+
+
+async updateOptionStatus(req: Request, res: Response) {
+  try {
+    const { empresaId, merchantId } = req.params;
+    const body = req.body;
+
+    // Validação: A API da UaiRango espera um Array. 
+    // Se o frontend enviar um objeto único, nós envolvemos em um array [].
+    let statusData = Array.isArray(body) ? body : [body];
+
+    const result = await merchantService.updateOptionStatus(empresaId, merchantId, statusData);
+    
+    return res.status(200).json({
+      message: 'Status do(s) complemento(s) atualizado(s) com sucesso',
+      statusCode:200
+      //result
+    });
+
+  } catch (error: any) {
+    console.error(`[MerchantController] Erro ao atualizar status:`, error.response?.data || error.message);
+    
+    return res.status(error.response?.status || 500).json({
+      error: error.response?.data || 'Erro ao processar atualização de status.'
+    });
+  }
+}
+
+
 }

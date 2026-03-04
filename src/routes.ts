@@ -22,6 +22,9 @@ router.get('/uairango/v1/token/:tenant_id', (req, res) => uaiController.getToken
 router.get('/uairango/v1/pedidos/:tenantId', (req, res) => uaiController.getPolling(req, res));
 router.get('/uairango/pedido/:id', uaiController.getDetails); */
 
+// Rota para iniciar o processo de vínculo
+router.post('/:empresaId/auth/user-code', merchantController.getUserCode.bind(merchantController));
+
 // Sugestão de Padronização:
 router.get('/pedidos/:tenantId', (req, res) => uaiController.getPolling(req, res));
 router.get('/pedido/:id', uaiController.getDetails);
@@ -53,18 +56,25 @@ router.patch('/:empresaId/status/:merchantId', merchantController.updateStatus.b
 
 // ROTAS PAR O CATALOGO DE PRODUTOS
 
-    // Rota para listar catálogos
-    router.get('/:empresaId/catalogs/:merchantId', merchantController.getCatalogs.bind(merchantController));
-    // Rota para pegar o cardápio completo (Categorias + Itens)
-    router.get('/:empresaId/catalogs/:merchantId/:catalogId/items', merchantController.getCatalogDetails.bind(merchantController));
-    // Rota para criar categoria (POST)
-    router.post('/:empresaId/catalogs/:merchantId/:catalogId/categories', merchantController.createCategory.bind(merchantController));
+// Rota para listar catálogos
+router.get('/:empresaId/catalogs/:merchantId', merchantController.getCatalogs.bind(merchantController));
+// Rota para pegar o cardápio completo (Categorias + Itens)
+router.get('/:empresaId/catalogs/:merchantId/:catalogId/items', merchantController.getCatalogDetails.bind(merchantController));
+// Rota para criar categoria (POST)
+router.post('/:empresaId/catalogs/:merchantId/:catalogId/categories', merchantController.createCategory.bind(merchantController));
 
 // Rota para Upsert de Item Completo
-  router.post('/:empresaId/items-full/:merchantId', merchantController.upsertItem.bind(merchantController));
+router.post('/:empresaId/items-full/:merchantId', merchantController.upsertItem.bind(merchantController));
 
-    // Rota para editar preço
-  router.post('/:empresaId/items/:merchantId/price', merchantController.updatePrice.bind(merchantController));
+// Rota para editar preço
+router.post('/:empresaId/items/:merchantId/price', merchantController.updatePrice.bind(merchantController));
+// Rota para pausar/ativar itens
+router.patch('/:empresaId/items/:merchantId/status', merchantController.updateItemStatus.bind(merchantController));
+// Rota para atualização de preço de complementos (Options)
+router.patch('/:empresaId/options/:merchantId/price', merchantController.updateOptionPrice.bind(merchantController));
+// Rota para alterar status de complementos (Disponível/Indisponível)
+router.patch('/:empresaId/options/:merchantId/status', merchantController.updateOptionStatus.bind(merchantController))
+
 
 
 export default router;

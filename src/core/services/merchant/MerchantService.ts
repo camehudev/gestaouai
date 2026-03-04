@@ -13,9 +13,11 @@ interface AuthResponse {
 
 export class MerchantService {
   // private readonly AUTH_URL = process.env.AUTH_URL ;
-  private readonly AUTH_URL = `${process.env.AUTH_URL}`;
-  private readonly URL_MERCHANTS = `${process.env.URL_MERCHANTS}`;  
-  private readonly API_KEY= `${process.env.API_KEY}`; 
+  // O operador 'as string' ajuda o TypeScript a entender que o valor virá
+  private readonly AUTH_URL = process.env.URL_AUTH as string;
+  private readonly URL_MERCHANTS = process.env.URL_MERCHANT as string;
+  private readonly URL_MERCHANT_V2 = process.env.URL_MERCHANT_V2 as string;
+  private readonly API_KEY = process.env.API_KEY as string;
   
   /**
    * Método principal para listar os merchants
@@ -53,9 +55,7 @@ export class MerchantService {
   }
 
   async getValidToken(empresaId: string, config: ConfigUaiRango): Promise<string> {
-    const agora = new Date();
-
-   
+    const agora = new Date();  
    
     // 1. Verifica validade (Margem de segurança de 1 min)
     if (config?.access_token && config?.expires_at) {
@@ -64,7 +64,7 @@ export class MerchantService {
         return config.access_token;
       }
     }
-
+   
     // 2. Se expirou ou não existe, gera e salva
     const authData = await this.autenticar(config); 
 
@@ -72,35 +72,46 @@ export class MerchantService {
     return authData.accessToken;
   }
 
-  private async autenticar(config: ConfigUaiRango): Promise<AuthResponse> {
-    const clientId = config.client_id?.trim();
-    const secretKey = config.secret_key?.trim();
+ /**
+ * Solicita o Token de Acesso (Access Token)
+ * Rota: POST /authentication/v1.0/oauth/token
+ */
 
-    if (!clientId || !secretKey) {
-      throw new Error('Configuração client_id ou secret_key ausente no banco.');
-    }
+private async autenticar(config: ConfigUaiRango): Promise<AuthResponse> {
+  const clientId = config.client_id?.trim();
+  const clientSecret = config.secret_key?.trim(); // Use o nome da coluna do seu banco
 
-    const params = new URLSearchParams();
-    params.append('grantType', 'client_credentials');
-    params.append('clientId', clientId);
-    params.append('clientSecret', secretKey);
-
-    try {
-      const { data } = await axios.post(this.AUTH_URL, params.toString(), {
-        headers: { 
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Accept': 'application/json',
-          // IMPORTANTE: Mude para 'production' se não for ambiente de teste
-          'x-env': 'development',
-          'x-api-key': this.API_KEY,
-        }
-      });    
-
-      return data as AuthResponse;
-    } catch (error: any) {   
-      throw new Error(`Falha na autenticação: ${error.response?.status} - ${JSON.stringify(error.response?.data)}`);
-    }
+  if (!clientId || !clientSecret) {
+    throw new Error('clientId ou clientSecret ausentes para autenticação.');
   }
+
+  // A URL base deve ser https://merchant-api.uairango.com
+  const url = `${this.AUTH_URL}/authentication/v1.0/oauth/token`;
+
+  // Preparando o corpo como x-www-form-urlencoded
+  const params = new URLSearchParams();
+  params.append('grantType', 'client_credentials');
+  params.append('clientId', clientId);
+  params.append('clientSecret', clientSecret);
+
+  try {
+    const { data } = await axios.post(url, params.toString(), {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json',
+        'x-api-key': this.API_KEY, // Sua chave de desenvolvedor do .env
+        'x-env': process.env.NODE_ENV === 'production' ? 'production' : 'development'
+      }
+    });
+
+    console.log("✅ Token gerado com sucesso!");
+    return data as AuthResponse;
+
+  } catch (error: any) {
+    console.error(`❌ Erro no Request Token (${url}):`, error.response?.data || error.message);
+    throw new Error(`Falha na geração do token: ${error.response?.status}`);
+  }
+}
 
   private async salvarTokenNoBanco(empresaId: string, authData: AuthResponse, configAtual: ConfigUaiRango) {
     // Calcula expiração: UaiRango costuma retornar em segundos (ex: 3600)
@@ -152,8 +163,7 @@ async getMerchantById(empresaId: string, merchantId: string) {
 
     return data;
 
-  } catch (error: any) {
-    console.error(`[MerchantService] Erro ao buscar loja ${merchantId}:`, error.response?.data || error.message);
+  } catch (error: any) {   
     throw error;
   }
 }
@@ -190,8 +200,7 @@ async getMerchantStatus(empresaId: string, merchantId: string) {
     });
 
     return data;
-  } catch (error: any) {
-    console.error(`[MerchantService] Erro ao buscar status ${merchantId}:`, error.response?.data || error.message);
+  } catch (error: any) {    
     throw error;
   }
 }
@@ -225,7 +234,6 @@ async getDeliveryStatus(empresaId: string, merchantId: string) {
 
     return data;
   } catch (error: any) {
-    console.error(`[MerchantService] Erro ao buscar status de delivery ${merchantId}:`, error.response?.data || error.message);
     throw error;
   }
 }
@@ -263,8 +271,7 @@ async updateMerchantStatus(empresaId: string, merchantId: string, statusBody: an
     });
 
     return data;
-  } catch (error: any) {
-    console.error(`[MerchantService] Erro ao atualizar status do merchant ${merchantId}:`, error.response?.data || error.message);
+  } catch (error: any) {    
     throw error;
   }
 }
@@ -301,8 +308,7 @@ async listCatalogs(empresaId: string, merchantId: string) {
     });
 
     return data;
-  } catch (error: any) {
-    console.error(`[MerchantService] Erro ao listar catálogos ${merchantId}:`, error.response?.data || error.message);
+  } catch (error: any) { 
     throw error;
   }
 }
@@ -339,8 +345,7 @@ async getCatalogCategories(empresaId: string, merchantId: string, catalogId: str
     });
 
     return data;
-  } catch (error: any) {
-    console.error(`[MerchantService] Erro ao buscar categorias do catálogo ${catalogId}:`, error.response?.data || error.message);
+  } catch (error: any) {  
     throw error;
   }
 }
@@ -378,47 +383,10 @@ async createCategory(empresaId: string, merchantId: string, catalogId: string, c
 
     return data;
   } catch (error: any) {
-    console.error(`[MerchantService] Erro ao criar categoria no catálogo ${catalogId}:`, error.response?.data || error.message);
-    throw error;
+      throw error;
   }
 }
 
-/**
- * Cria um novo item (produto) global no estabelecimento
- * Endpoint: POST /catalog/v2.0/merchants/{merchantId}/items
- */
-async createItem(empresaId: string, merchantId: string, itemData: any) {
-  try {
-    const empresa = await prisma.empresa.findUnique({
-      where: { id: empresaId },
-      select: { configUaiRango: true }
-    });
-
-    if (!empresa || !empresa.configUaiRango) {
-      throw new Error(`Configuração não encontrada.`);
-    }
-
-    const config = empresa.configUaiRango as any as ConfigUaiRango;
-    const token = await this.getValidToken(empresaId, config);
-
-    const url = `https://merchant-api.uairango.com/catalog/v2.0/merchants/${merchantId}/items`;
-    
-    const { data } = await axios.post(url, itemData, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'x-env': process.env.NODE_ENV === 'production' ? 'production' : 'development',
-        'x-api-key': this.API_KEY,
-      }
-    });
-
-    return data;
-  } catch (error: any) {
-    console.error(`[MerchantService] Erro ao criar item no merchant ${merchantId}:`, error.response?.data || error.message);
-    throw error;
-  }
-}
 /**
  * Atualiza o preço de um ou mais itens
  * Endpoint: PATCH /catalog/v2.0/merchants/{merchantId}/items/price
@@ -452,7 +420,7 @@ async updateItemPrice(empresaId: string, merchantId: string, priceData: any) {
 
     return data;
   } catch (error: any) {
-    console.error(`[MerchantService] Erro ao editar preço no merchant ${merchantId}:`, error.response?.data || error.message);
+
     throw error;
   }
 }
@@ -491,7 +459,180 @@ async upsertFullItem(empresaId: string, merchantId: string, fullItemData: any) {
 
     return data;
   } catch (error: any) {
-    console.error(`[MerchantService] Erro no Upsert de Item ${merchantId}:`, error.response?.data || error.message);
+    throw error;
+  }
+}
+
+/**
+ * Altera o status de um ou mais itens (Disponível/Indisponível)
+ * Endpoint: PATCH /catalog/v2.0/merchants/{merchantId}/items/status
+ */
+async updateItemStatus(empresaId: string, merchantId: string, statusData: any) {
+  try {  
+    const empresa = await prisma.empresa.findUnique({
+      where: { id: empresaId },
+      select: { configUaiRango: true }
+    });
+
+    if (!empresa || !empresa.configUaiRango) {
+      throw new Error(`Configuração não encontrada.`);
+    }
+
+    const config = empresa.configUaiRango as any as ConfigUaiRango;
+    const token = await this.getValidToken(empresaId, config);
+
+    // Seguindo o padrão v2.0 de catálogo
+    const url = `https://merchant-api.uairango.com/catalog/v2.0/merchants/${merchantId}/items/status`;
+    
+    const { data } = await axios.patch(url, statusData, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'x-env': process.env.NODE_ENV === 'production' ? 'production' : 'development',        
+        'x-api-key': this.API_KEY,
+      }
+    });
+
+    return data;
+  } catch (error: any) {    
+    throw error;
+  }
+}
+
+/**
+ * Gera um código de usuário (userCode) para autorização do lojista
+ * Rota: POST /authentication/v1.0/oauth/userCode
+ */
+async generateUserCode(empresaId: string) {
+  try {
+    // 1. Busca as configurações da empresa no banco
+    const empresa = await prisma.empresa.findUnique({
+      where: { id: empresaId },
+      select: { configUaiRango: true }
+    });
+
+    if (!empresa || !empresa.configUaiRango) {
+      throw new Error('Configurações da UaiRango não encontradas para esta empresa.');
+    }
+
+    const config = empresa.configUaiRango as any;
+    const clientId = config.client_id?.trim();
+
+    if (!clientId) {
+      throw new Error('Client ID não configurado.');
+    }
+
+    // 2. Chama a API da UaiRango
+    const url = `https://merchant-api.uairango.com/authentication/v1.0/oauth/userCode`;
+    
+    const { data } = await axios.post(url, 
+      { clientId: clientId }, 
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'x-api-key': this.API_KEY, // Sua chave de desenvolvedor do .env
+          'x-env': process.env.NODE_ENV === 'production' ? 'production' : 'development'
+        }
+      }
+    );
+
+    // O retorno esperado contém: userCode, deviceCode, verificationUrl, expiresIn e interval
+    return data;
+
+  } catch (error: any) {   
+    throw error;
+  }
+}
+
+async updateOptionPrice(empresaId: string, merchantId: string, priceData: any) {
+  try {
+    const empresa = await prisma.empresa.findUnique({
+      where: { id: empresaId },
+      select: { configUaiRango: true }
+    });
+
+    const config = empresa?.configUaiRango as any;
+    const token = await this.getValidToken(empresaId, config);
+
+    // Garanta que a URL base esteja correta (sem duplicidade como vimos antes)
+    const baseUrl = "https://merchant-api.uairango.com";
+    const url = `${baseUrl}/catalog/v2.0/merchants/${merchantId}/options/price`;
+    
+    /**
+     * 🛠️ NORMALIZAÇÃO DO PAYLOAD
+     * A UaiRango v2 exige optionId e o objeto price.
+     * Se priceData vier como array, pegamos o primeiro.
+     */
+    const item = Array.isArray(priceData) ? priceData[0] : priceData;
+
+    const payload = {
+      optionId: item.optionId || item.id,
+      price: {
+        value: item.price?.value ?? item.value // Aceita price.value ou value direto
+      },
+      // Opcional: Adiciona o preço por catálogo se existir, senão usa o padrão
+      priceByCatalog: item.priceByCatalog || [
+        {
+          value: item.price?.value ?? item.value,
+          catalogContext: "DEFAULT"
+        }
+      ]
+    };   
+
+    const { data } = await axios.patch(url, payload, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'x-env': process.env.NODE_ENV === 'production' ? 'production' : 'development',
+        'x-api-key': this.API_KEY
+      }
+    });
+
+    return data;
+  } catch (error: any) {   
+    throw error;
+  }
+}
+
+async updateOptionStatus(empresaId: string, merchantId: string, statusData: any[]) {
+  try {
+    const empresa = await prisma.empresa.findUnique({
+      where: { id: empresaId },
+      select: { configUaiRango: true }
+    });
+
+    const config = empresa?.configUaiRango as any;
+    const token = await this.getValidToken(empresaId, config);
+
+    const url = `https://merchant-api.uairango.com/catalog/v2.0/merchants/${merchantId}/options/status`;
+    
+    /**
+     * 🛠️ CORREÇÃO DO PAYLOAD
+     * Pegamos o primeiro item do array e garantimos que ele seja um objeto único
+     * com os campos 'optionId' e 'status' exatamente como a API exigiu.
+     */
+    const item = Array.isArray(statusData) ? statusData[0] : statusData;
+    
+    const payload = {
+      optionId: item.optionId || item.id,
+      status: item.status // Deve ser 'AVAILABLE' ou 'UNAVAILABLE'
+    };
+ 
+
+    // IMPORTANTE: Enviamos o 'payload' e não o 'statusData'
+    const { data } = await axios.patch(url, payload, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'x-api-key': this.API_KEY,
+        'x-env': process.env.NODE_ENV === 'production' ? 'production' : 'development'
+      }
+    });   
+
+    return data;
+  } catch (error: any) {    
     throw error;
   }
 }

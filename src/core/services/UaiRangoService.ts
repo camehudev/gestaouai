@@ -11,8 +11,8 @@ interface AuthResponse {
 }
 
 export class UaiRangoService {
-  private readonly AUTH_URL = `${process.env.AUTH_URL}`;
-  
+  private readonly AUTH_URL = process.env.AUTH_URL as string;
+  private readonly API_KEY = process.env.API_KEY as string;
   
   async getValidToken(empresaId: string, config: ConfigUaiRango): Promise<string> {
     const agora = new Date();
@@ -27,41 +27,50 @@ export class UaiRangoService {
 
     // 2. Se não for válido, gera um novo
     const authData = await this.autenticar(config);
+    console.log(`[UaiRangoService] ${authData}`);
     await this.salvarTokenNoBanco(empresaId, authData, config);
     return authData.accessToken;
   }
 
-  private async autenticar(config: ConfigUaiRango): Promise<AuthResponse> {
-    const clientId = config.client_id?.trim();
-    const secretKey = config.secret_key?.trim();
+  /**
+ * Solicita o Token de Acesso (Access Token)
+ * Rota: POST /authentication/v1.0/oauth/token
+ */
+private async autenticar(config: ConfigUaiRango): Promise<AuthResponse> {
+  const clientId = config.client_id?.trim();
+  const clientSecret = config.secret_key?.trim(); // Use o nome da coluna do seu banco
 
-    if (!clientId || !secretKey) {
-      throw new Error('Configuração client_id ou secret_key ausente no banco.');
-    }
-
-    // A UaiRango Merchant API costuma exigir CamelCase: grantType, clientId, clientSecret
-    const params = new URLSearchParams();
-    params.append('grantType', 'client_credentials');
-    params.append('clientId', clientId);
-    params.append('clientSecret', secretKey);
-
-    try {
-      const { data } = await axios.post(this.AUTH_URL, params.toString(), {
-        headers: { 
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Accept': 'application/json',
-          // IMPORTANTE: Mude para 'production' se não for ambiente de teste
-          'x-env': 'development',
-          'x-api-key': `${process.env.API_KEY}`, 
-        }
-      });
-
-      return data as AuthResponse;
-    } catch (error: any) {   
-      // Se continuar dando 401, o problema é a permissão da sua chave no portal UaiRango
-      throw new Error(`Falha na autenticação: ${error.response?.status} - ${JSON.stringify(error.response?.data)}`);
-    }
+  if (!clientId || !clientSecret) {
+    throw new Error('clientId ou clientSecret ausentes para autenticação.');
   }
+
+  // A URL base deve ser https://merchant-api.uairango.com
+  const url = `${this.AUTH_URL}/authentication/v1.0/oauth/token`;
+
+  // Preparando o corpo como x-www-form-urlencoded
+  const params = new URLSearchParams();
+  params.append('grantType', 'client_credentials');
+  params.append('clientId', clientId);
+  params.append('clientSecret', clientSecret);
+
+  try {
+    const { data } = await axios.post(url, params.toString(), {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json',
+        'x-api-key': this.API_KEY, // Sua chave de desenvolvedor do .env
+        'x-env': process.env.NODE_ENV === 'production' ? 'production' : 'development'
+      }
+    });
+
+    console.log("✅ Token gerado com sucesso!");
+    return data as AuthResponse;
+
+  } catch (error: any) {
+    console.error(`❌ Erro no Request Token (${url}):`, error.response?.data || error.message);
+    throw new Error(`Falha na geração do token: ${error.response?.status}`);
+  }
+}
 
   private async salvarTokenNoBanco(empresaId: string, authData: AuthResponse, configAtual: ConfigUaiRango) {
     const dataExpiracao = new Date();
