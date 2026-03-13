@@ -92,9 +92,12 @@ private async autenticar(config: ConfigUaiRango): Promise<AuthResponse> {
 
     const { data } = await axios.get(url, {
       headers: { 
-        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,        
         'x-env': 'development',
         'x-api-key': `${process.env.API_KEY}`, 
+        'tenant-id': empresaId
       }
     });
     return data || [];
@@ -109,9 +112,12 @@ private async autenticar(config: ConfigUaiRango): Promise<AuthResponse> {
     const body = eventIds.map(eventId => ({ id: eventId }));
     await axios.post(url, body, {
       headers: { 
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json',
         'Authorization': `Bearer ${token}`,
         'x-env': 'development',
-        'x-api-key': `${process.env.API_KEY}`
+        'x-api-key': `${process.env.API_KEY}`,
+        
       }
     });
     return true;
@@ -169,6 +175,8 @@ private async autenticar(config: ConfigUaiRango): Promise<AuthResponse> {
       const url = `https://merchant-api.uairango.com/order/v1.0/orders/${orderId}`;
       const { data } = await axios.get(url, {
         headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Accept': 'application/json',
           'Authorization': `Bearer ${token}`,
           'x-env': 'development',
           'x-api-key': `${process.env.API_KEY}`, 
@@ -193,6 +201,8 @@ private async autenticar(config: ConfigUaiRango): Promise<AuthResponse> {
       const response = await axios.get(`https://merchant-api.uairango.com/order/v1.0/orders/${pedidoId}`, {
         headers: {
           // Agora usamos o token que veio do banco
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Accept': 'application/json',
           'Authorization': `Bearer ${token}`,
           'x-env': 'development',
           'x-api-key': `${process.env.API_KEY}`, 
