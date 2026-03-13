@@ -14,10 +14,7 @@ interface AuthResponse {
 export class MerchantService {
   // private readonly AUTH_URL = process.env.AUTH_URL ;
   // O operador 'as string' ajuda o TypeScript a entender que o valor virá
-  private readonly AUTH_URL = process.env.URL_AUTH as string;
-  private readonly URL_MERCHANTS = process.env.URL_MERCHANT as string;
-  private readonly URL_MERCHANT_V2 = process.env.URL_MERCHANT_V2 as string;
-  private readonly API_KEY = process.env.API_KEY as string;
+
   
   /**
    * Método principal para listar os merchants
@@ -40,13 +37,13 @@ export class MerchantService {
     const token = await this.getValidToken(empresaId, config);   
 
     // 2. Chama a rota de merchants
-    const { data } = await axios.get(this.URL_MERCHANTS , {
+    const { data } = await axios.get(`${process.env.URL_MERCHANTS}` , {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
         'accept': 'application/json',
         'x-env': 'development',
-        'x-api-key': this.API_KEY,
+        'x-api-key': process.env.API_KEY,
         'tenant-id': empresaId
       }
     });
@@ -86,7 +83,7 @@ private async autenticar(config: ConfigUaiRango): Promise<AuthResponse> {
   }
 
   // A URL base deve ser https://merchant-api.uairango.com
-  const url = `${this.AUTH_URL}/authentication/v1.0/oauth/token`;
+  const url = `${process.env.AUTH_URL}/authentication/v1.0/oauth/token`;
 
   // Preparando o corpo como x-www-form-urlencoded
   const params = new URLSearchParams();
@@ -99,7 +96,7 @@ private async autenticar(config: ConfigUaiRango): Promise<AuthResponse> {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
         'Accept': 'application/json',
-        'x-api-key': this.API_KEY, // Sua chave de desenvolvedor do .env
+        'x-api-key': process.env.API_KEY, // Sua chave de desenvolvedor do .env
         'x-env': process.env.NODE_ENV === 'production' ? 'production' : 'development'
       }
     });
@@ -151,13 +148,13 @@ async getMerchantById(empresaId: string, merchantId: string) {
 
     // 2. Chamada para o endpoint de detalhes
     // Note que usamos a URL específica que você passou
-    const url = `https://merchant-api.uairango.com/merchant/v1.0/merchants/${merchantId}`;
+    const url = `${process.env.URL_AUTH}/merchant/v1.0/merchants/${merchantId}`;
     
     const { data } = await axios.get(url, {headers: {
         'Authorization': `Bearer ${token}`,
         'Accept': 'application/json',
         'x-env': 'development',
-        'x-api-key': this.API_KEY,
+        'x-api-key': process.env.API_KEY,
       }
     });
 
@@ -188,14 +185,14 @@ async getMerchantStatus(empresaId: string, merchantId: string) {
     const token = await this.getValidToken(empresaId, config);
 
     // Endpoint de Status
-    const url = `https://merchant-api.uairango.com/merchant/v1.0/merchants/${merchantId}/status`;
+    const url = `${process.env.URL_AUTH}/merchant/v1.0/merchants/${merchantId}/status`;
     
     const { data } = await axios.get(url, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Accept': 'application/json',
         'x-env': process.env.NODE_ENV === 'production' ? 'production' : 'development',
-        'x-api-key': this.API_KEY,
+        'x-api-key': process.env.API_KEY,
       }
     });
 
@@ -221,14 +218,14 @@ async getDeliveryStatus(empresaId: string, merchantId: string) {
     const token = await this.getValidToken(empresaId, config);
 
     // Endpoint específico para Delivery
-    const url = `https://merchant-api.uairango.com/merchant/v1.0/merchants/${merchantId}/status/delivery`;
+    const url = `${process.env.URL_AUTH}/merchant/v1.0/merchants/${merchantId}/status/delivery`;
     
     const { data } = await axios.get(url, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Accept': 'application/json',
         'x-env': process.env.NODE_ENV === 'production' ? 'production' : 'development',
-        'x-api-key': this.API_KEY,
+        'x-api-key': process.env.API_KEY,
       }
     });
 
@@ -257,7 +254,7 @@ async updateMerchantStatus(empresaId: string, merchantId: string, statusBody: an
     const config = empresa.configUaiRango as any as ConfigUaiRango;
     const token = await this.getValidToken(empresaId, config);
 
-    const url = `https://merchant-api.uairango.com/merchant/v1.0/merchants/${merchantId}`;
+    const url = `${process.env.URL_AUTH}/merchant/v1.0/merchants/${merchantId}`;
     
     // Usamos PATCH para modificações parciais de status
     const { data } = await axios.patch(url, statusBody, {
@@ -266,7 +263,7 @@ async updateMerchantStatus(empresaId: string, merchantId: string, statusBody: an
         'Content-Type': 'application/json',
         'Accept': 'application/json',
         'x-env': process.env.NODE_ENV === 'production' ? 'production' : 'development',
-        'x-api-key': this.API_KEY,
+        'x-api-key': process.env.API_KEY,
       }
     });
 
@@ -296,14 +293,14 @@ async listCatalogs(empresaId: string, merchantId: string) {
     const token = await this.getValidToken(empresaId, config);
 
     // URL da API de Catálogo v2.0
-    const url = `https://merchant-api.uairango.com/catalog/v2.0/merchants/${merchantId}/catalogs`;
+    const url = `${process.env.URL_AUTH}/catalog/v2.0/merchants/${merchantId}/catalogs`;
     
     const { data } = await axios.get(url, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Accept': 'application/json',
         'x-env': process.env.NODE_ENV === 'production' ? 'production' : 'development',
-        'x-api-key': this.API_KEY,
+        'x-api-key': process.env.API_KEY,
       }
     });
 
@@ -332,7 +329,7 @@ async getCatalogCategories(empresaId: string, merchantId: string, catalogId: str
     const token = await this.getValidToken(empresaId, config);
 
     // Montamos a URL com o query param includeItems
-    const url = `https://merchant-api.uairango.com/catalog/v2.0/merchants/${merchantId}/catalogs/${catalogId}/categories`;
+    const url = `${process.env.URL_AUTH}/catalog/v2.0/merchants/${merchantId}/catalogs/${catalogId}/categories`;
     
     const { data } = await axios.get(url, {
       params: { includeItems: 'true' }, // Passando como objeto de params do Axios
@@ -340,7 +337,7 @@ async getCatalogCategories(empresaId: string, merchantId: string, catalogId: str
         'Authorization': `Bearer ${token}`,
         'Accept': 'application/json',
         'x-env': process.env.NODE_ENV === 'production' ? 'production' : 'development',
-        'x-api-key': this.API_KEY
+        'x-api-key': process.env.API_KEY
       }
     });
 
@@ -369,7 +366,7 @@ async createCategory(empresaId: string, merchantId: string, catalogId: string, c
     const config = empresa.configUaiRango as any as ConfigUaiRango;
     const token = await this.getValidToken(empresaId, config);
 
-    const url = `https://merchant-api.uairango.com/catalog/v2.0/merchants/${merchantId}/catalogs/${catalogId}/categories`;
+    const url = `${process.env.URL_AUTH}/catalog/v2.0/merchants/${merchantId}/catalogs/${catalogId}/categories`;
     
     const { data } = await axios.post(url, categoryData, {
       headers: {
@@ -377,7 +374,7 @@ async createCategory(empresaId: string, merchantId: string, catalogId: string, c
         'Content-Type': 'application/json',
         'Accept': 'application/json',
         'x-env': process.env.NODE_ENV === 'production' ? 'production' : 'development',
-        'x-api-key': this.API_KEY,
+        'x-api-key': process.env.API_KEY,
       }
     });
 
@@ -405,7 +402,7 @@ async updateItemPrice(empresaId: string, merchantId: string, priceData: any) {
     const config = empresa.configUaiRango as any as ConfigUaiRango;
     const token = await this.getValidToken(empresaId, config);
 
-    const url = `https://merchant-api.uairango.com/catalog/v2.0/merchants/${merchantId}/items/price`;
+    const url = `${process.env.URL_AUTH}/catalog/v2.0/merchants/${merchantId}/items/price`;
     
     // Geralmente é um PATCH para atualizações parciais
     const { data } = await axios.patch(url, priceData, {
@@ -414,7 +411,7 @@ async updateItemPrice(empresaId: string, merchantId: string, priceData: any) {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
         'x-env': process.env.NODE_ENV === 'production' ? 'production' : 'development',
-        'x-api-key': this.API_KEY,
+        'x-api-key': process.env.API_KEY,
       }
     });
 
@@ -445,7 +442,7 @@ async upsertFullItem(empresaId: string, merchantId: string, fullItemData: any) {
     const config = empresa.configUaiRango as any as ConfigUaiRango;
     const token = await this.getValidToken(empresaId, config);
 
-    const url = `https://merchant-api.uairango.com/catalog/v2.0/merchants/${merchantId}/items`;
+    const url = `${process.env.URL_AUTH}/catalog/v2.0/merchants/${merchantId}/items`;
     
     const { data } = await axios.post(url, fullItemData, {
       headers: {
@@ -453,7 +450,7 @@ async upsertFullItem(empresaId: string, merchantId: string, fullItemData: any) {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
         'x-env': process.env.NODE_ENV === 'production' ? 'production' : 'development',        
-        'x-api-key': this.API_KEY,
+        'x-api-key': process.env.API_KEY,
       }
     });
 
@@ -482,7 +479,7 @@ async updateItemStatus(empresaId: string, merchantId: string, statusData: any) {
     const token = await this.getValidToken(empresaId, config);
 
     // Seguindo o padrão v2.0 de catálogo
-    const url = `https://merchant-api.uairango.com/catalog/v2.0/merchants/${merchantId}/items/status`;
+    const url = `${process.env.URL_AUTH}/catalog/v2.0/merchants/${merchantId}/items/status`;
     
     const { data } = await axios.patch(url, statusData, {
       headers: {
@@ -490,7 +487,7 @@ async updateItemStatus(empresaId: string, merchantId: string, statusData: any) {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
         'x-env': process.env.NODE_ENV === 'production' ? 'production' : 'development',        
-        'x-api-key': this.API_KEY,
+        'x-api-key': process.env.API_KEY,
       }
     });
 
@@ -524,7 +521,7 @@ async generateUserCode(empresaId: string) {
     }
 
     // 2. Chama a API da UaiRango
-    const url = `https://merchant-api.uairango.com/authentication/v1.0/oauth/userCode`;
+    const url = `${process.env.URL_AUTH}/authentication/v1.0/oauth/userCode`;
     
     const { data } = await axios.post(url, 
       { clientId: clientId }, 
@@ -532,7 +529,7 @@ async generateUserCode(empresaId: string) {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'x-api-key': this.API_KEY, // Sua chave de desenvolvedor do .env
+          'x-api-key': process.env.API_KEY, // Sua chave de desenvolvedor do .env
           'x-env': process.env.NODE_ENV === 'production' ? 'production' : 'development'
         }
       }
@@ -556,9 +553,8 @@ async updateOptionPrice(empresaId: string, merchantId: string, priceData: any) {
     const config = empresa?.configUaiRango as any;
     const token = await this.getValidToken(empresaId, config);
 
-    // Garanta que a URL base esteja correta (sem duplicidade como vimos antes)
-    const baseUrl = "https://merchant-api.uairango.com";
-    const url = `${baseUrl}/catalog/v2.0/merchants/${merchantId}/options/price`;
+    // Garanta que a URL base esteja correta (sem duplicidade como vimos antes)    
+    const url = `${process.env.URL_AUTH}/catalog/v2.0/merchants/${merchantId}/options/price`;
     
     /**
      * 🛠️ NORMALIZAÇÃO DO PAYLOAD
@@ -586,7 +582,7 @@ async updateOptionPrice(empresaId: string, merchantId: string, priceData: any) {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
         'x-env': process.env.NODE_ENV === 'production' ? 'production' : 'development',
-        'x-api-key': this.API_KEY
+        'x-api-key': process.env.API_KEY
       }
     });
 
@@ -606,7 +602,7 @@ async updateOptionStatus(empresaId: string, merchantId: string, statusData: any[
     const config = empresa?.configUaiRango as any;
     const token = await this.getValidToken(empresaId, config);
 
-    const url = `https://merchant-api.uairango.com/catalog/v2.0/merchants/${merchantId}/options/status`;
+    const url = `${process.env.URL_AUTH}/catalog/v2.0/merchants/${merchantId}/options/status`;
     
     /**
      * 🛠️ CORREÇÃO DO PAYLOAD
@@ -626,7 +622,7 @@ async updateOptionStatus(empresaId: string, merchantId: string, statusData: any[
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
-        'x-api-key': this.API_KEY,
+        'x-api-key': process.env.API_KEY,
         'x-env': process.env.NODE_ENV === 'production' ? 'production' : 'development'
       }
     });   

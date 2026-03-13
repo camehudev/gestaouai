@@ -1,9 +1,9 @@
 import { Router } from 'express';
 import { UaiRangoController } from './infrastructure/http/controllers/UaiRangoController';
 import { authMiddleware } from './middlewares/auth-middleware';
-import { MerchantController } from 'infrastructure/http/controllers/merchante/MerchantController';
-import { UserController } from 'infrastructure/http/controllers/UserController';
-import { AuthController } from 'infrastructure/http/controllers/AuthController';
+import { MerchantController } from '../src/infrastructure/http/controllers/merchante/MerchantController';
+import { UserController } from '../src/infrastructure/http/controllers/UserController';
+import { AuthController } from '../src/infrastructure/http/controllers/AuthController';
 import { loginLimiter } from 'middlewares/auth-limiter';
 import { createUserSchema, loginSchema } from 'schemas/userSchema';
 import { validate } from 'middlewares/validateMiddleware';
