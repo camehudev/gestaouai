@@ -11,9 +11,7 @@ interface AuthResponse {
 }
 
 export class UaiRangoService {
-  private readonly AUTH_URL = process.env.AUTH_URL as string;
-  private readonly API_KEY = process.env.API_KEY as string;
-  
+
   async getValidToken(empresaId: string, config: ConfigUaiRango): Promise<string> {
     const agora = new Date();
     
@@ -45,7 +43,7 @@ private async autenticar(config: ConfigUaiRango): Promise<AuthResponse> {
   }
 
   // A URL base deve ser https://merchant-api.uairango.com
-  const url = `${process.env.URL_AUTH}/authentication/v1.0/oauth/token`;
+  const url = `https://merchant-api.uairango.com/authentication/v1.0/oauth/token`;
 
   // Preparando o corpo como x-www-form-urlencoded
   const params = new URLSearchParams();
@@ -58,7 +56,7 @@ private async autenticar(config: ConfigUaiRango): Promise<AuthResponse> {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
         'Accept': 'application/json',
-        'x-api-key': this.API_KEY, // Sua chave de desenvolvedor do .env
+        'x-api-key': process.env.API_KEY, // Sua chave de desenvolvedor do .env
         'x-env': process.env.NODE_ENV === 'production' ? 'production' : 'development'
       }
     });
@@ -90,7 +88,7 @@ private async autenticar(config: ConfigUaiRango): Promise<AuthResponse> {
 
   async buscarEventosPendentes(empresaId: string, config: any) {
     const token = await this.getValidToken(empresaId, config);
-    const url = `${process.env.URL_AUTH}/events/v1.0/events:polling?types=PLC,CFM,RTP,DSP,CAN&groups=ORDER_STATUS`;   
+    const url = `https://merchant-api.uairango.com/events/v1.0/events:polling?types=PLC,CFM,RTP,DSP,CAN&groups=ORDER_STATUS`;   
 
     const { data } = await axios.get(url, {
       headers: { 
@@ -106,7 +104,7 @@ private async autenticar(config: ConfigUaiRango): Promise<AuthResponse> {
 
   async confirmarRecebimento(empresaId: string, config: ConfigUaiRango, eventIds: string[]) {
     const token = await this.getValidToken(empresaId, config);
-    const url= `${process.env.URL_AUTH}/events/v1.0/events/acknowledgment`;  
+    const url= `https://merchant-api.uairango.com/events/v1.0/events/acknowledgment`;  
     
     const body = eventIds.map(eventId => ({ id: eventId }));
     await axios.post(url, body, {
@@ -168,7 +166,7 @@ private async autenticar(config: ConfigUaiRango): Promise<AuthResponse> {
     const token = await this.getValidToken(empresaId, config);
 
     try {
-      const url = `${process.env.URL_AUTH}/order/v1.0/orders/${orderId}`;
+      const url = `https://merchant-api.uairango.com/order/v1.0/orders/${orderId}`;
       const { data } = await axios.get(url, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -192,7 +190,7 @@ private async autenticar(config: ConfigUaiRango): Promise<AuthResponse> {
 
   async getPedidoDetalhes(tenantId: string, pedidoId: string, token: string) {
     try {
-      const response = await axios.get(`${process.env.URL_AUTH}/order/v1.0/orders/${pedidoId}`, {
+      const response = await axios.get(`https://merchant-api.uairango.com/order/v1.0/orders/${pedidoId}`, {
         headers: {
           // Agora usamos o token que veio do banco
           'Authorization': `Bearer ${token}`,
@@ -214,7 +212,7 @@ async confirmarPedidoUaiRango(tenantId:string, config: any, orderId: string): Pr
 
     try {
       // Endpoint oficial conforme fornecido
-      const url = `${process.env.URL_AUTH}/order/v1.0/orders/${orderId}/confirm`;
+      const url = `https://merchant-api.uairango.com/order/v1.0/orders/${orderId}/confirm`;
 
       const response = await axios.post(
         url,
@@ -249,7 +247,7 @@ async confirmarPedidoUaiRango(tenantId:string, config: any, orderId: string): Pr
   async pedidoProntoRetirada(tenantId: string, config: any, orderId: string): Promise<any> {
   try {
     // Endpoint oficial de confirmação
-    const url = `${process.env.URL_AUTH}/order/v1.0/orders/${orderId}/readyToPickup`;
+    const url = `https://merchant-api.uairango.com/order/v1.0/orders/${orderId}/readyToPickup`;
 
     const response = await axios.post(
       url,
@@ -288,7 +286,7 @@ async confirmarPedidoUaiRango(tenantId:string, config: any, orderId: string): Pr
 
 async despacharPedidoUaiRango(tenantId: string, config: any, orderId: string): Promise<any> {
   try {
-    const url = `${process.env.URL_AUTH}/order/v1.0/orders/${orderId}/dispatch`;
+    const url = `https://merchant-api.uairango.com/order/v1.0/orders/${orderId}/dispatch`;
 
     const response = await axios.post(
       url,
