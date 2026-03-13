@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
-import { MerchantService } from 'core/services/merchant/MerchantService';
+import { MerchantService } from '../../../../core/services/merchant/MerchantService';
+
 
 const merchantService = new MerchantService();
 
