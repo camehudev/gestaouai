@@ -32,20 +32,9 @@ model Empresa {
   configUaiRango Json?
   createdAt      DateTime  @default(now())
 
-  usuarios Usuario[]
   produtos Produto[]
-  pedidos  Pedido[]
-}
-
-model Usuario {
-  id        String   @id @default(uuid())
-  nome      String
-  email     String   @unique
-  senha     String
-  tenant_id String
-  createdAt DateTime @default(now())
-
-  empresa Empresa @relation(fields: [tenant_id], references: [id])
+  pedidos  Pedido[] 
+  users User[]
 }
 
 model Produto {
@@ -144,4 +133,29 @@ model PedidoHistorico {
   pedido Pedido @relation(fields: [pedido_id], references: [id])
 
   @@index([pedido_id])
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      UserRole @default(USER) // Níveis de acesso
+  active    Boolean  @default(true)
+
+  // Relacionamento com a Empresa (Tenant)
+  empresaId String
+  empresa   Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([empresaId]) // Importante para performance em sistemas multi-tenant
+  @@map("users") // Nome da tabela no banco de dados
+}
+
+enum UserRole {
+  ADMIN    // Dono da conta/Empresa
+  MANAGER  // Gerente da loja
+  USER     // Funcionário comum
 }

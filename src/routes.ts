@@ -2,10 +2,18 @@ import { Router } from 'express';
 import { UaiRangoController } from './infrastructure/http/controllers/UaiRangoController';
 import { authMiddleware } from './middlewares/auth-middleware';
 import { MerchantController } from 'infrastructure/http/controllers/merchante/MerchantController';
+import { UserController } from 'infrastructure/http/controllers/UserController';
+import { AuthController } from 'infrastructure/http/controllers/AuthController';
+import { loginLimiter } from 'middlewares/auth-limiter';
+import { createUserSchema, loginSchema } from 'schemas/userSchema';
+import { validate } from 'middlewares/validateMiddleware';
+
 
 export const router = Router();
 const uaiController = new UaiRangoController();
 const merchantController = new MerchantController();
+const userController = new UserController();
+const authController = new AuthController();
 
 // Todas as rotas abaixo deste middleware exigirão a x-api-key
 router.use('/uairango/v1', authMiddleware);
@@ -73,7 +81,27 @@ router.patch('/:empresaId/items/:merchantId/status', merchantController.updateIt
 // Rota para atualização de preço de complementos (Options)
 router.patch('/:empresaId/options/:merchantId/price', merchantController.updateOptionPrice.bind(merchantController));
 // Rota para alterar status de complementos (Disponível/Indisponível)
-router.patch('/:empresaId/options/:merchantId/status', merchantController.updateOptionStatus.bind(merchantController))
+router.patch('/:empresaId/options/:merchantId/status', merchantController.updateOptionStatus.bind(merchantController));
+
+
+// ROTA DE USUÁRIOS
+
+// 1. Criar um novo usuário para uma empresa específica
+router.post('/:empresaId/users',validate(createUserSchema), userController.store.bind(userController));
+
+// 2. Listar todos os usuários de uma empresa específica
+router.get('/:empresaId/users', userController.index.bind(userController));
+
+// 3. Buscar os detalhes de um único usuário
+router.get('/:empresaId/users/:id', userController.show.bind(userController));
+
+// 4. Deletar um usuário de uma empresa
+router.delete('/:empresaId/users/:id', userController.delete.bind(userController));
+
+// Rota pública de login
+router.post('/login',loginLimiter, validate(loginSchema), authController.authenticate.bind(authController));
+
+
 
 
 
