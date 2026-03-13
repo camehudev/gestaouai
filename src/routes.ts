@@ -4,9 +4,9 @@ import { authMiddleware } from './middlewares/auth-middleware';
 import { MerchantController } from '../src/infrastructure/http/controllers/merchante/MerchantController';
 import { UserController } from '../src/infrastructure/http/controllers/UserController';
 import { AuthController } from '../src/infrastructure/http/controllers/AuthController';
-import { loginLimiter } from 'middlewares/auth-limiter';
 import { createUserSchema, loginSchema } from 'schemas/userSchema';
 import { validate } from 'middlewares/validateMiddleware';
+import { loginLimiter } from './middlewares/auth-limiter';
 
 
 export const router = Router();
@@ -100,9 +100,6 @@ router.delete('/:empresaId/users/:id', userController.delete.bind(userController
 
 // Rota pública de login
 router.post('/login',loginLimiter, validate(loginSchema), authController.authenticate.bind(authController));
-
-
-
 
 
 export default router;
