@@ -7,6 +7,7 @@ import { AuthController } from '../src/infrastructure/http/controllers/AuthContr
 import { loginLimiter } from './middlewares/auth-limiter';
 import { createUserSchema, loginSchema } from './schemas/userSchema';
 import { validate } from './middlewares/validateMiddleware';
+import jwt from 'jsonwebtoken';
 
 
 export const router = Router();
@@ -100,7 +101,46 @@ router.get('/:empresaId/users/:id', userController.show.bind(userController));
 router.delete('/:empresaId/users/:id', userController.delete.bind(userController));
 
 // Rota pública de login
-router.post('/login',loginLimiter, validate(loginSchema), authController.authenticate.bind(authController));
+router.post('/login',loginLimiter,validate(loginSchema),authController.authenticate.bind(authController));
+//validate(loginSchema),
+
+router.get('/me', (req, res) => {
+  // 1. O cookie-parser pega o cookie 'token' que você salvou no Login
+  const token = req.cookies.token; 
+
+  if (!token) {
+    return res.status(401).json({ error: 'Não autenticado' });
+  }
+
+  try {
+    // 2. Valida se o token é verdadeiro e não expirou
+    // Use a mesma SECRET_KEY que você usou no login
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'sua_chave_secreta');
+
+    // 3. Se deu certo, retorna os dados básicos (ou apenas um OK)
+    return res.json({ 
+      user: decoded, 
+      authenticated: true 
+    });
+
+  } catch (err) {
+    // Se o token for inválido ou expirado, limpamos o cookie
+    res.clearCookie('token');
+    return res.status(401).json({ error: 'Sessão expirada' });
+  }
+});
+
+router.post('/logout', (req, res) => {
+  // Limpa o cookie chamado 'token'
+  res.clearCookie('token', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    path: '/' // Garante que limpe em todas as rotas
+  });
+
+  return res.status(200).json({ message: 'Logout realizado com sucesso!' });
+});
 
 
 export default router;

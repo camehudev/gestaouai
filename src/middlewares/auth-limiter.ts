@@ -11,11 +11,17 @@ export const createRateLimiter = (windowMs: number, max: number, message: string
   });
 };
 
-// Limiter específico para Login (mais restrito)
+// // Limiter específico para Login (mais restrito)
+// export const loginLimiter = createRateLimiter(
+//   15 * 60 * 1000, // 15 minutos
+//   5, // Apenas 5 tentativas
+//   'Muitas tentativas de login. Tente novamente após 15 minutos.'
+// );
+
 export const loginLimiter = createRateLimiter(
-  15 * 60 * 1000, // 15 minutos
-  5, // Apenas 5 tentativas
-  'Muitas tentativas de login. Tente novamente após 15 minutos.'
+  1 * 60 * 1000, // 1 minuto (60000 ms)
+  5, // Mantém 5 tentativas
+  'Muitas tentativas de login. Tente novamente após 1 minuto.'
 );
 
 // Limiter para criação de contas (mais restrito ainda para evitar spam)
