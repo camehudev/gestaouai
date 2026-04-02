@@ -308,5 +308,31 @@ async updateOptionStatus(req: Request, res: Response) {
   }
 }
 
+async updateStatusLoja(req: Request, res: Response) {
+  try {
+    const { empresaId, merchantId } = req.params;
+    const body = req.body; // Aqui vem o JSON: { status: "AVAILABLE", operations: [...] } 
+     
+    // Chamada para o Service passando os dois identificadores
+    const result = await merchantService.updateStatusLoja(empresaId, merchantId, body);
+
+    // Retorno de sucesso para o Frontend/Postman
+    return res.status(200).json({
+      success: true,
+      message: "Status atualizado com sucesso na UaiRango",
+      data: result
+    });
+
+  } catch (error: any) {
+    console.error(`[Controller Error] updateOptionStatus:`, error.message);
+    
+    // Retorna o status de erro vindo do Service ou 500 se for algo inesperado
+    return res.status(error.status || 500).json({
+      success: false,
+      error: error.message || "Erro interno ao processar atualização"
+    });
+  }
+}
+
 
 }

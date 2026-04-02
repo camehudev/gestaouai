@@ -23,6 +23,8 @@ export class AuthController {
         maxAge: 86400000 // 1 dia em milissegundos
       });
       
+
+      
       return res.json(result);
 
     } catch (error: any) {

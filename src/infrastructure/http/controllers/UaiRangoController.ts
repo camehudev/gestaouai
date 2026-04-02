@@ -9,6 +9,7 @@ export class UaiRangoController {
 
   async getTokenByTenant(req: Request, res: Response) {
     const { tenantId } = req.params;
+    console.log(req.params)
 
     try {
       const empresa = await prisma.empresa.findFirst({

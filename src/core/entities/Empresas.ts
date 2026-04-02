@@ -13,7 +13,7 @@ export class Empresa {
     public nome: string,
     public cnpj: string,
     public tenant_id: string,
-    public tokenUai?: string,       // 4º parâmetro
+    public uaiMerchantId: string,       // 4º parâmetro
     public configUaiRango?: ConfigUaiRango, // 5º parâmetro (O que estava faltando)
     public readonly createdAt?: Date // 6º parâmetro (Opcional)
   ) {}

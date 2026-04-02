@@ -31,6 +31,9 @@ router.get('/uairango/v1/token/:tenant_id', (req, res) => uaiController.getToken
 router.get('/uairango/v1/pedidos/:tenantId', (req, res) => uaiController.getPolling(req, res));
 router.get('/uairango/pedido/:id', uaiController.getDetails); */
 
+// Rota para validar token
+router.get('/token/:tenant_id', (req, res) => uaiController.getTokenByTenant(req, res));
+
 // Rota para iniciar o processo de vínculo
 router.post('/:empresaId/auth/user-code', merchantController.getUserCode.bind(merchantController));
 
@@ -85,6 +88,9 @@ router.patch('/:empresaId/options/:merchantId/price', merchantController.updateO
 // Rota para alterar status de complementos (Disponível/Indisponível)
 router.patch('/:empresaId/options/:merchantId/status', merchantController.updateOptionStatus.bind(merchantController));
 
+
+// NOVA ROTA PAR AATUALIZAÇÃO DE STATUS /uairango/v1/config/EMPRESA_DO_BANCO/merchant/ID_DA_UAIRANGO
+router.put('/config/:empresaId/merchant/:merchantId', (req, res) => merchantController.updateStatusLoja(req, res));
 
 // ROTA DE USUÁRIOS
 

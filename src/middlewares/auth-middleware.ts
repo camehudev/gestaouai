@@ -7,7 +7,7 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
   const validApiKey = process.env.API_KEY;
 
   if (!apiKey || apiKey !== validApiKey) {
-    return res.status(401).json({ error: 'Erro ao acessar. Contate o administrador' });
+    return res.status(401).json({ error: 'Erro ao acessar. Contate o administrador 456' });
   }
 
   next();

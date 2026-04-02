@@ -25,7 +25,6 @@ export class UaiRangoService {
 
     // 2. Se não for válido, gera um novo
     const authData = await this.autenticar(config);
-    console.log(`[UaiRangoService] ${authData}`);
     await this.salvarTokenNoBanco(empresaId, authData, config);
     return authData.accessToken;
   }

@@ -43,6 +43,7 @@ export class AuthService {
         name: user.name,
         email: user.email,
         empresaId: user.empresaId,
+        uaiMerchantId: user.empresa.uaiMerchantId, // Supondo que isso esteja na tabela de usuários
         role: user.role
       },
       token

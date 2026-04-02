@@ -18,8 +18,8 @@ app.use(cors({
       'http://localhost:5174',
     ],
     credentials: true, // Permite que o servidor aceite cookies do Front
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'], 
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-api-key'],
 }));
 
 app.use(express.json()); // Permite ler JSON no corpo da requisição

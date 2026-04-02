@@ -6,7 +6,7 @@ const authMiddleware = (req, res, next) => {
     // A chave que você definirá nas variáveis de ambiente da Vercel
     const validApiKey = process.env.API_KEY;
     if (!apiKey || apiKey !== validApiKey) {
-        return res.status(401).json({ error: 'Erro ao acessar. Contate o administrador' });
+        return res.status(401).json({ error: 'Erro ao acessar. Contate o administrador 123' });
     }
     next();
 };

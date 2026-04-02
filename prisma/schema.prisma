@@ -1,26 +1,11 @@
-datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env ("DIRECT_URL")
-}
-
 generator client {
   provider = "prisma-client-js"
 }
 
-// Atualizado com os status comuns de integração
-enum PedidoStatus {
-  RECEIVED
-  CONFIRMED
-  DISPATCHED
-  READY
-  CANCELLED
-  PENDING
-  SHIPPED
-  DELIVERED
-  READY_TO_PICKUP
-  ORDER_NEW        // Adicionado para UaiRango
-  PLACED           // Adicionado para UaiRango
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model Empresa {
@@ -28,13 +13,12 @@ model Empresa {
   nome           String
   cnpj           String    @unique
   tenant_id      String?
-  tokenUai       String?
+  uaiMerchantId  String?
   configUaiRango Json?
   createdAt      DateTime  @default(now())
-
-  produtos Produto[]
-  pedidos  Pedido[] 
-  users User[]
+  pedidos        Pedido[]
+  produtos       Produto[]
+  users          User[]
 }
 
 model Produto {
@@ -46,91 +30,75 @@ model Produto {
   informacaoAdicional String?
   serving             String?
   peso                Float?
-  
-  tenant_id String
-  empresa   Empresa @relation(fields: [tenant_id], references: [id])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  tenant_id           String
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  empresa             Empresa  @relation(fields: [tenant_id], references: [id])
 }
 
 model Pedido {
-  id           String       @id @default(uuid())
-  uairango_id  String       @unique // O orderId do JSON
-  displayId    String?      // O código curto 173DBEC9D
-  status       String       @default("RECEIVED") // String é mais flexível para integrações
-  
-  // Financeiro (Decimal é melhor para dinheiro)
-  valorTotal   Decimal      @default(0.0) @db.Decimal(10, 2)
-  subTotal     Decimal      @default(0.0) @db.Decimal(10, 2)
-  taxaEntrega  Decimal      @default(0.0) @db.Decimal(10, 2)
-  
-  // Dados do Cliente salvos no pedido (Snapshot)
-  clienteNome  String?
-  clienteDoc   String?
-  clienteFone  String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  tenant_id String
-  empresa   Empresa @relation(fields: [tenant_id], references: [id])
-  
-  // Relações Novas
-  itens      PedidoItem[]
-  pagamentos PedidoPagamento[]
-  historico  PedidoHistorico[]
-
-  json_bruto Json? // Recomendado salvar o JSON original para auditoria
+  id          String            @id @default(uuid())
+  uairango_id String            @unique
+  displayId   String?
+  status      String            @default("RECEIVED")
+  valorTotal  Decimal           @default(0.0) @db.Decimal(10, 2)
+  subTotal    Decimal           @default(0.0) @db.Decimal(10, 2)
+  taxaEntrega Decimal           @default(0.0) @db.Decimal(10, 2)
+  clienteNome String?
+  clienteDoc  String?
+  clienteFone String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  tenant_id   String
+  json_bruto  Json?
+  empresa     Empresa           @relation(fields: [tenant_id], references: [id])
+  historico   PedidoHistorico[]
+  itens       PedidoItem[]
+  pagamentos  PedidoPagamento[]
 
   @@index([tenant_id])
 }
 
 model PedidoItem {
-  id         String   @id @default(uuid())
+  id         String             @id @default(uuid())
   pedido_id  String
-  pedido     Pedido   @relation(fields: [pedido_id], references: [id])
-  
   externalId String?
   nome       String
   quantidade Int
-  precoUnit  Decimal  @db.Decimal(10, 2)
-  precoTotal Decimal  @db.Decimal(10, 2) // Incluindo opções
-  obs        String?  @db.Text
-
+  precoUnit  Decimal            @db.Decimal(10, 2)
+  precoTotal Decimal            @db.Decimal(10, 2)
+  obs        String?
+  pedido     Pedido             @relation(fields: [pedido_id], references: [id])
   options    PedidoItemOption[]
 }
 
 model PedidoItemOption {
-  id            String     @id @default(uuid())
+  id             String     @id @default(uuid())
   pedido_item_id String
-  pedidoItem    PedidoItem @relation(fields: [pedido_item_id], references: [id])
-  
-  nome       String
-  quantidade Int
-  precoUnit  Decimal @db.Decimal(10, 2)
-  precoTotal Decimal @db.Decimal(10, 2)
+  nome           String
+  quantidade     Int
+  precoUnit      Decimal    @db.Decimal(10, 2)
+  precoTotal     Decimal    @db.Decimal(10, 2)
+  pedidoItem     PedidoItem @relation(fields: [pedido_item_id], references: [id])
 }
 
 model PedidoPagamento {
   id        String  @id @default(uuid())
   pedido_id String
-  pedido    Pedido  @relation(fields: [pedido_id], references: [id])
-  
-  metodo    String  // CASH, CREDIT_CARD
-  tipo      String  // ONLINE, OFFLINE
-  bandeira  String? // Visa, Master
+  metodo    String
+  tipo      String
+  bandeira  String?
   valor     Decimal @db.Decimal(10, 2)
   prepaid   Boolean @default(false)
+  pedido    Pedido  @relation(fields: [pedido_id], references: [id])
 }
 
 model PedidoHistorico {
   id        String   @id @default(uuid())
   pedido_id String
-  status    String   // Alterado para String para bater com Pedido
+  status    String
   createdAt DateTime @default(now())
-
-  pedido Pedido @relation(fields: [pedido_id], references: [id])
+  pedido    Pedido   @relation(fields: [pedido_id], references: [id])
 
   @@index([pedido_id])
 }
@@ -140,22 +108,34 @@ model User {
   name      String
   email     String   @unique
   password  String
-  role      UserRole @default(USER) // Níveis de acesso
+  role      UserRole @default(USER)
   active    Boolean  @default(true)
-
-  // Relacionamento com a Empresa (Tenant)
   empresaId String
-  empresa   Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
-
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  empresa   Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  
 
-  @@index([empresaId]) // Importante para performance em sistemas multi-tenant
-  @@map("users") // Nome da tabela no banco de dados
+  @@index([empresaId])
+  @@map("users")
+}
+
+enum PedidoStatus {
+  RECEIVED
+  CONFIRMED
+  DISPATCHED
+  READY
+  CANCELLED
+  PENDING
+  SHIPPED
+  DELIVERED
+  READY_TO_PICKUP
+  ORDER_NEW
+  PLACED
 }
 
 enum UserRole {
-  ADMIN    // Dono da conta/Empresa
-  MANAGER  // Gerente da loja
-  USER     // Funcionário comum
+  ADMIN
+  MANAGER
+  USER
 }

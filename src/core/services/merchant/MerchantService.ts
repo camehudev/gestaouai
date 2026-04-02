@@ -21,8 +21,8 @@ export class MerchantService {
   async listMerchants(empresaId: string) {
 
   const empresa = await prisma.empresa.findUnique({
-      where: { id: empresaId },
-      select: { configUaiRango: true }
+      where: { id: empresaId  },
+      select: { configUaiRango: true, uaiMerchantId: true }
     });
 
 
@@ -30,7 +30,7 @@ export class MerchantService {
       throw new Error(`Empresa ou configuração não encontrada.`);
     }
 
-    const config = empresa.configUaiRango as any as ConfigUaiRango;
+    const config = empresa.configUaiRango as any as ConfigUaiRango; 
     
     // 1. Obtém o token (Válido ou Novo)
     const token = await this.getValidToken(empresaId, config);   
@@ -82,7 +82,7 @@ private async autenticar(config: ConfigUaiRango): Promise<AuthResponse> {
   }
 
   // A URL base deve ser https://merchant-api.uairango.com
-  const url = `${process.env.AUTH_URL}/authentication/v1.0/oauth/token`;
+  const url = `https://merchant-api.uairango.com/authentication/v1.0/oauth/token`;
 
   // Preparando o corpo como x-www-form-urlencoded
   const params = new URLSearchParams();
@@ -99,12 +99,11 @@ private async autenticar(config: ConfigUaiRango): Promise<AuthResponse> {
         'x-env': process.env.NODE_ENV === 'production' ? 'production' : 'development'
       }
     });
-
-    console.log("✅ Token gerado com sucesso!");
+   
     return data as AuthResponse;
 
   } catch (error: any) {
-    console.error(`❌ Erro no Request Token (${url}):`, error.response?.data || error.message);
+    console.error(`Erro no Request Token (${url}):`, error.response?.data || error.message);
     throw new Error(`Falha na geração do token: ${error.response?.status}`);
   }
 }
@@ -629,6 +628,47 @@ async updateOptionStatus(empresaId: string, merchantId: string, statusData: any[
     return data;
   } catch (error: any) {    
     throw error;
+  }
+}
+
+
+async updateStatusLoja(empresaId: string, merchantId: string, statusData: any): Promise<any> {
+  try {
+    // 1. Busca as configurações da empresa no seu banco
+    const empresa = await prisma.empresa.findUnique({
+      where: { id: empresaId },
+      select: { configUaiRango: true }
+    });
+
+    if (!empresa || !empresa.configUaiRango) {
+      throw new Error('Configurações do UaiRango não encontradas para esta empresa.');
+    }
+
+    // 2. Extrai o token ou dados necessários da config salva (ajuste conforme seu schema)
+    const config = empresa?.configUaiRango as any;
+    const token = await this.getValidToken(empresaId, config);
+
+    // 3. Monta a chamada para a API oficial do UaiRango
+  
+    const url = `https://merchant-api.uairango.com/merchant/v1.0/merchants/${merchantId}`;   
+
+    const response = await axios.put(url, statusData, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',      
+        'x-api-key': process.env.API_KEY,
+        'x-env': process.env.NODE_ENV === 'production' ? 'production' : 'development'
+      }
+    });
+
+    return response.data;
+
+  } catch (error: any) {
+    console.error(`[Error updateOptionStatus] Empresa: ${empresaId}`, error.message);
+    throw {
+      status: error.response?.status || 500,
+      message: error.response?.data?.message || error.message
+    };
   }
 }
 
