@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { UaiRangoService } from '../../../core/services/UaiRangoService';
+import {listAcknowledgment} from '../../../core/entities/Empresas';
 
 const prisma = new PrismaClient();
 const uaiService = new UaiRangoService();
@@ -9,7 +10,6 @@ export class UaiRangoController {
 
   async getTokenByTenant(req: Request, res: Response) {
     const { tenantId } = req.params;
-    console.log(req.params)
 
     try {
       const empresa = await prisma.empresa.findFirst({
@@ -49,7 +49,7 @@ export class UaiRangoController {
 
       // 2. Busca os eventos (Polling)
       const eventos = await uaiService.buscarEventosPendentes(empresa.id, config);
-      const listaEventos = Array.isArray(eventos) ? eventos : (eventos.events || []);
+      const listaEventos = Array.isArray(eventos) ? eventos : (eventos.events || []);     
 
       if (listaEventos.length === 0) {
         return res.json({ mensagem: "Nenhum evento novo.", processados: 0, pedidos: [] });
@@ -57,48 +57,14 @@ export class UaiRangoController {
       
 
       // 3. Processamento (Enriquecendo com detalhes)
-      const pedidosDetalhados: any[] = [];
-      const eventosParaConfirmar: string[] = []; // Criamos uma lista de IDs para o ACK
-
-      for (const evento of listaEventos) {
-        try {
-          // 1. Tente pegar o orderId primeiro. Se não existir, use o id.
-          //onst orderId = evento.orderId || evento.order?.id || evento.id;   
-          
-          await uaiService.salvarPedidoNoBanco(empresa.id, evento);
-
-          
-
-          // 2. Coleta o ID do evento para confirmar depois
-              eventosParaConfirmar.push(evento.id);
-
-          // 4. CONFIRMAÇÃO FINAL: Se houver eventos processados, avisa a UaiRango
-         
-            if (eventosParaConfirmar.length > 0) {
-              // ✅ Passando os 3 argumentos: empresaId, config e a lista de IDs
-              await uaiService.confirmarRecebimento(
-                empresa.id, 
-                empresa.configUaiRango as any, 
-                eventosParaConfirmar
-              );
-            }
-         
-          const detalhes = await uaiService.getPedidoDetalhes(tenantId, evento.orderId, tokenBanco);       
-          
-          if (detalhes) {
-            pedidosDetalhados.push(detalhes);
-          }
-        } catch (detailError: any) {
-           throw detailError.message;
-        }
-    }
+      const pedidosDetalhados: any[] = [];     
 
     // 4. Retorno dos dados enriquecidos
     return res.json({
       sucesso: true,
       recebidos: listaEventos.length,
       processados: pedidosDetalhados.length,
-      pedidos: pedidosDetalhados 
+      pedidos: eventos 
     });
 
   } catch (error: any) {   
@@ -106,32 +72,29 @@ export class UaiRangoController {
   }
 }
 
- // Método isolado para confirmação
+ 
+ // No seu PedidoController.ts (Backend)
 async confirmarProcessamentoPelaRota(req: Request, res: Response) {
-    try {
-      const { tenantId } = req.params;
-      const { eventIds } = req.body; // Espera um JSON: { "eventIds": ["id1", "id2"] }
+  try {
+    const { tenantId } = req.params;
+    const { eventIds } = req.body; // ["id123"]
 
-      if (!eventIds || !Array.isArray(eventIds)) {
-        return res.status(400).json({ error: "O campo eventIds deve ser um array." });
-      }
+    // 1. Busca a empresa e as configs do banco (Prisma)
+    const empresa = await prisma.empresa.findFirst({ where: { tenant_id: tenantId } });
+    if (!empresa) return res.status(404).json({ error: "Empresa não encontrada" });
 
-      // 1. Busca a empresa para pegar as configurações
-      const empresa = await prisma.empresa.findFirst({
-        where: { tenant_id: tenantId }
-      });
+    // 2. Chama o método que você criou (o que usa Merchant API da UaiRango)
+    await uaiService.confirmarRecebimento(
+      empresa.id, 
+      empresa.configUaiRango as any, 
+      eventIds
+    );
 
-      if (!empresa) return res.status(404).json({ error: 'Empresa não encontrada.' });
-
-      // 2. Chama o service que faz o POST de confirmação na UaiRango
-      await uaiService.confirmarRecebimento(empresa.id, empresa.configUaiRango as any, eventIds);
-
-      return res.json({ sucesso: true, mensagem: `${eventIds.length} eventos confirmados.` });
-    } catch (error: any) {
-      return res.status(500).json({ error: error.message });
-    }
+    return res.json({ sucesso: true, mensagem: "Pedido confirmado na UaiRango!" });
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message });
   }
-
+}
 
  async getDetails(req: Request, res: Response) {
     try {

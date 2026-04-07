@@ -25,8 +25,8 @@ router.use('/uairango/v1', authMiddleware);
  */
 
 
-/**router.post('/uairango/v1/confirmar/:tenantId', (req, res) => uaiController.confirmarProcessamentoPelaRota(req, res));
-router.post("/pedidos/:orderId/confirmar",(req,res)=> uaiController.confirmarAceite(req,res));
+router.post('/pedidos/confirmar/:tenantId', (req, res) => uaiController.confirmarProcessamentoPelaRota(req, res));
+/**router.post("/pedidos/:orderId/confirmar",(req,res)=> uaiController.confirmarAceite(req,res));
 router.get('/uairango/v1/token/:tenant_id', (req, res) => uaiController.getTokenByTenant(req, res));
 router.get('/uairango/v1/pedidos/:tenantId', (req, res) => uaiController.getPolling(req, res));
 router.get('/uairango/pedido/:id', uaiController.getDetails); */

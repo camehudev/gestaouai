@@ -46,6 +46,8 @@ class UaiRangoController {
             }
             // 3. Processamento (Enriquecendo com detalhes)
             const pedidosDetalhados = [];
+
+            
             const eventosParaConfirmar = []; // Criamos uma lista de IDs para o ACK
             for (const evento of listaEventos) {
                 try {

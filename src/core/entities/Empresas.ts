@@ -18,3 +18,7 @@ export class Empresa {
     public readonly createdAt?: Date // 6º parâmetro (Opcional)
   ) {}
 }
+
+export interface listAcknowledgment {
+  events: string[];
+};

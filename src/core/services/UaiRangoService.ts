@@ -197,7 +197,8 @@ private async autenticar(config: ConfigUaiRango): Promise<AuthResponse> {
 
   async getPedidoDetalhes(tenantId: string, pedidoId: string, token: string) {
     try {
-      const response = await axios.get(`https://merchant-api.uairango.com/order/v1.0/orders/${pedidoId}`, {
+       const url = `https://merchant-api.uairango.com/order/v1.0/orders/${pedidoId}`;
+      const response = await axios.get(`${url}`, {
         headers: {
           // Agora usamos o token que veio do banco
           'Content-Type': 'application/x-www-form-urlencoded',
