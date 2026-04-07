@@ -19,8 +19,8 @@ export class AuthController {
       res.cookie('token', result.token, {
         httpOnly: true, // Impede acesso via JavaScript
         secure: process.env.NODE_ENV === 'production', // Apenas HTTPS
-        // maxAge: 6 * 60 * 60 * 1000, // 6 horas em milissegundos
-        maxAge: 35 * 1000, // 30 segundos exatos
+        maxAge: 6 * 60 * 60 * 1000, // 6 horas em milissegundos
+        //maxAge: 35 * 1000, // 30 segundos exatos
         sameSite: 'strict'
       });
       
