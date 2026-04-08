@@ -40,7 +40,7 @@ router.post('/:empresaId/auth/user-code', merchantController.getUserCode.bind(me
 // Sugestão de Padronização:
 router.get('/pedidos/:tenantId', (req, res) => uaiController.getPolling(req, res));
 
-router.get('/pedido/:id', uaiController.getDetails);
+router.get('/order/pedido/:id', uaiController.getDetails);
 
 // Mude esta linha para incluir o prefixo se desejar:
 router.post('/pedidos/:orderId/confirmar', (req, res) => uaiController.confirmarAceite(req, res));

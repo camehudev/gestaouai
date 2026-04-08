@@ -96,11 +96,13 @@ async confirmarProcessamentoPelaRota(req: Request, res: Response) {
   }
 }
 
- async getDetails(req: Request, res: Response) {
+ async getDetails(req: Request, res: Response) {  
     try {
+     
       const { id } = req.params; // ID do pedido
-      const tenantId = req.headers['tenant-id'] as string;
-
+       
+      const tenantId = req.headers['tenant-id'] as string;     
+     
       if (!tenantId) {
         return res.status(400).json({ error: "O header 'tenant-id' é obrigatório." });
       }
