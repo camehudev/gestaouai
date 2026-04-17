@@ -127,6 +127,7 @@ async updateStatus(req: Request, res: Response) {
 //LISTAR CATALOGOS
 
 async getCatalogs(req: Request, res: Response) {
+  
   try {
     const { empresaId, merchantId } = req.params;
 

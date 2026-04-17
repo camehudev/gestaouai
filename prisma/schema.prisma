@@ -9,98 +9,174 @@ datasource db {
 }
 
 model Empresa {
-  id             String    @id @default(uuid())
+  id             String           @id @default(uuid())
   nome           String
-  cnpj           String    @unique
+  cnpj           String           @unique
   tenant_id      String?
   uaiMerchantId  String?
   configUaiRango Json?
-  createdAt      DateTime  @default(now())
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  operations     Json?
+  catalog        Catalog[]
+  endereco       EmpresaEndereco?
   pedidos        Pedido[]
-  produtos       Produto[]
   users          User[]
 }
 
-model Produto {
-  id                  String   @id @default(uuid())
-  externalId          String?  @unique
-  externalCode        String?
-  nome                String
-  descricao           String?
-  informacaoAdicional String?
-  serving             String?
-  peso                Float?
-  tenant_id           String
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-  empresa             Empresa  @relation(fields: [tenant_id], references: [id])
+model EmpresaEndereco {
+  id         String   @id @default(uuid())
+  empresaId  String   @unique
+  latitude   Float?
+  longitude  Float?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  city       String
+  complement String?
+  country    String   @default("Brasil")
+  district   String
+  number     String
+  postalCode String
+  state      String
+  street     String
+  empresa    Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+}
+
+model Catalog {
+  id         String     @id @default(uuid())
+  catalog    Json?
+  empresaId  String
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  empresa    Empresa    @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  categories Category[]
+
+  @@index([empresaId])
+}
+
+model Category {
+  id            String   @id @default(uuid())
+  idCategoryUai String
+  name          String
+  description   String?
+  externalId    String?  @unique
+  index         String?
+  template      String?
+  status        String?
+  items         Json?
+  order         Int      @default(0)
+  catalogId     String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  catalog       Catalog  @relation(fields: [catalogId], references: [id], onDelete: Cascade)
+
+  @@index([catalogId])
 }
 
 model Pedido {
-  id          String            @id @default(uuid())
-  uairango_id String            @unique
-  displayId   String?
-  status      String            @default("RECEIVED")
-  valorTotal  Decimal           @default(0.0) @db.Decimal(10, 2)
-  subTotal    Decimal           @default(0.0) @db.Decimal(10, 2)
-  taxaEntrega Decimal           @default(0.0) @db.Decimal(10, 2)
-  clienteNome String?
-  clienteDoc  String?
-  clienteFone String?
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
-  tenant_id   String
-  json_bruto  Json?
-  empresa     Empresa           @relation(fields: [tenant_id], references: [id])
-  historico   PedidoHistorico[]
-  itens       PedidoItem[]
-  pagamentos  PedidoPagamento[]
+  // 1. Chave primária única (Interna do seu sistema)
+  id              String           @id @default(uuid())
 
+  // 2. ID da integração (Uairango) como único para buscas rápidas
+  uairango_id     String           @unique
+  code            String
+  fullCode        String
+  orderId         String
+  merchantId      String
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  // 3. Campo escalar necessário para a relação (Foreign Key)
+  tenant_id       String
+
+  // 4. Definição da relação usando o campo acima
+  empresa         Empresa          @relation(fields: [tenant_id], references: [id])
+  
+  enderecoEntrega PedidoEndereco?
+  historico       PedidoHistorico[]
+  itens           PedidoItem[]
+
+  // 5. Índices para performance
   @@index([tenant_id])
+  @@index([merchantId])
+}
+
+model PedidoEndereco {
+  id              String   @id @default(uuid())
+  pedidoId        String   @unique
+  logradouro      String
+  numero          String
+  bairro          String
+  cidade          String
+  pontoReferencia String?
+  formatadoUai    String?
+  createdAt       DateTime @default(now())
+  pedido          Pedido   @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
 }
 
 model PedidoItem {
-  id         String             @id @default(uuid())
-  pedido_id  String
-  externalId String?
-  nome       String
-  quantidade Int
-  precoUnit  Decimal            @db.Decimal(10, 2)
-  precoTotal Decimal            @db.Decimal(10, 2)
-  obs        String?
-  pedido     Pedido             @relation(fields: [pedido_id], references: [id])
-  options    PedidoItemOption[]
+  id                   String                 @id @default(uuid())
+  pedido_id            String
+  createdAt            String?
+  delivery             Json?
+  displayId            String?
+  idUaiRango           String?
+  isTest               Boolean?
+  items                Json?
+  orderTiming          String?
+  orderType            String?
+  salesChannel         String?
+  total                Json?
+  CustomerToPedidoItem CustomerToPedidoItem[]
+  payments             Payments[]
+  pedido               Pedido                 @relation(fields: [pedido_id], references: [id])
 }
 
-model PedidoItemOption {
-  id             String     @id @default(uuid())
-  pedido_item_id String
-  nome           String
-  quantidade     Int
-  precoUnit      Decimal    @db.Decimal(10, 2)
-  precoTotal     Decimal    @db.Decimal(10, 2)
-  pedidoItem     PedidoItem @relation(fields: [pedido_item_id], references: [id])
+model Payments {
+  id           String      @id @default(uuid())
+  prepaid      Boolean     @default(false)
+  pending      Decimal     @default(0.0) @db.Decimal(10, 2)
+  methods      Json?
+  pedidoItemId String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  pedidoItem   PedidoItem? @relation(fields: [pedidoItemId], references: [id], onDelete: Cascade)
+
+  @@index([pedidoItemId])
 }
 
-model PedidoPagamento {
-  id        String  @id @default(uuid())
-  pedido_id String
-  metodo    String
-  tipo      String
-  bandeira  String?
-  valor     Decimal @db.Decimal(10, 2)
-  prepaid   Boolean @default(false)
-  pedido    Pedido  @relation(fields: [pedido_id], references: [id])
+model Customer {
+  id                    String                 @id @default(uuid())
+  idCliente             String?                @unique
+  name                  String
+  documentNumber        String?
+  ordersCountOnMerchant Int                    @default(0)
+  phones                String[]
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  CustomerToPedidoItem  CustomerToPedidoItem[]
+
+  @@index([idCliente])
 }
 
 model PedidoHistorico {
-  id        String   @id @default(uuid())
-  pedido_id String
-  status    String
-  createdAt DateTime @default(now())
-  pedido    Pedido   @relation(fields: [pedido_id], references: [id])
+  id          String   @id @default(uuid()) 
+  pedido_id   String   @unique
+  code        String
+  fullCode    String
+  orderId     String
+  merchantId  String
+  tenant_id   String
+  
+  // CORRIGIDO: Data deve ser DateTime
+  createdAt   DateTime @default(now()) 
+  updatedAt   DateTime @default(now())
+
+  // Mantemos a relação usando o ID da Uairango
+  pedido      Pedido   @relation(fields: [pedido_id], references: [uairango_id])
 
   @@index([pedido_id])
+  @@index([tenant_id])
 }
 
 model User {
@@ -108,16 +184,40 @@ model User {
   name      String
   email     String   @unique
   password  String
-  role      UserRole @default(USER)
-  active    Boolean  @default(true)
+  role      Role @default(USER)
+  status    UserStatus @default(ATIVO) // Substituindo o booleano 'active'
   empresaId String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
   empresa   Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
-  
 
   @@index([empresaId])
   @@map("users")
+}
+
+model CustomerToPedidoItem {
+  A          String
+  B          String
+  Customer   Customer   @relation(fields: [A], references: [id], onDelete: Cascade, map: "_CustomerToPedidoItem_A_fkey")
+  PedidoItem PedidoItem @relation(fields: [B], references: [id], onDelete: Cascade, map: "_CustomerToPedidoItem_B_fkey")
+
+  @@id([A, B], map: "_CustomerToPedidoItem_AB_pkey")
+  @@index([B], map: "_CustomerToPedidoItem_B_index")
+}
+
+enum Role {
+  ADM_DBA
+  ADM_EMPRESA
+  OPERADOR
+  USER
+}
+
+enum UserStatus {
+  ATIVO
+  INATIVO
+  PENDENTE
+  BLOQUEADO
 }
 
 enum PedidoStatus {
@@ -132,10 +232,4 @@ enum PedidoStatus {
   READY_TO_PICKUP
   ORDER_NEW
   PLACED
-}
-
-enum UserRole {
-  ADMIN
-  MANAGER
-  USER
 }

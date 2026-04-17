@@ -148,5 +148,14 @@ router.post('/logout', (req, res) => {
   return res.status(200).json({ message: 'Logout realizado com sucesso!' });
 });
 
+// DESPACHAR UM PEDIDO ENTREGA OU DELIVERY
+
+// Rota para despachar pedido (pronto para entrega em Delivery)
+router.post('/despachar/:orderId', uaiController.dispatchAceite);
+
+// Rota para despachar pedido (pronto para retirada)
+router.post('/readyToPickup/:orderId', uaiController.readyToPickupAceite);
+
+
 
 export default router;

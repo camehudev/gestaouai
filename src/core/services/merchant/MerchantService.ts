@@ -277,6 +277,8 @@ async updateMerchantStatus(empresaId: string, merchantId: string, statusBody: an
  * Endpoint: GET /catalog/v2.0/merchants/{merchantId}/catalogs
  */
 async listCatalogs(empresaId: string, merchantId: string) {
+
+  console.log(empresaId)
   try {
     const empresa = await prisma.empresa.findUnique({
       where: { id: empresaId },

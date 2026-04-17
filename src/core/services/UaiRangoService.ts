@@ -1,6 +1,8 @@
 import axios from 'axios';
-import { PrismaClient } from '@prisma/client';
+import { PedidoStatus, PrismaClient } from '@prisma/client';
 import { ConfigUaiRango } from '../entities/Empresas';
+import { id } from 'zod/v4/locales/index.cjs';
+import { STATUS_CODES } from 'http';
 
 const prisma = new PrismaClient();
 
@@ -8,6 +10,18 @@ interface AuthResponse {
   accessToken: string;
   expiresIn: number;
   type: string;
+}
+
+interface IPedido{
+    id: string,
+    uairango_id: string ,
+    code: string,
+    fullCode: string,
+    orderId: string,
+    merchantId: string,
+    createdAt: string,
+    tenant_id: string
+
 }
 
 export class UaiRangoService {
@@ -60,7 +74,6 @@ private async autenticar(config: ConfigUaiRango): Promise<AuthResponse> {
       }
     });
 
-    console.log("✅ Token gerado com sucesso!");
     return data as AuthResponse;
 
   } catch (error: any) {
@@ -99,7 +112,8 @@ private async autenticar(config: ConfigUaiRango): Promise<AuthResponse> {
         'tenant-id': empresaId
       }
     });
-    return data || [];
+
+   return data || [];
   }
 
   //Este metodo confirma que um evento foi recebido e processado, evitando que ele seja enviado novamente no polling
@@ -119,53 +133,102 @@ private async autenticar(config: ConfigUaiRango): Promise<AuthResponse> {
         
       }
     });
+
     return true;
   }
 
-  async salvarPedidoNoBanco(tenantId: string, evento: any) {
-    try {
-      const { code, orderId, createdAt } = evento;
+ // 1. Adicionamos o tenantId (empresaId) como parâmetro obrigatório
+async salvarPedidoNoBanco(tenantId: string, pedido: IPedido ) { 
 
-      const statusMap: Record<string, any> = {
-        'PLC': 'RECEIVED',
-        'CFM': 'CONFIRMED',
-        'DSP': 'DISPATCHED',
-        'CAN': 'CANCELLED',
-        'RTP': 'READY_TO_PICKUP'
-      };
-
-      const statusFinal = statusMap[code] || 'RECEIVED';
-
-      const pedidoSalvo = await prisma.pedido.upsert({
-        where: { uairango_id: orderId },
-        update: {
-          status: statusFinal,
-          updatedAt: new Date()
-        },
-        create: {
-          uairango_id: orderId,          
-          displayId: orderId.substring(0, 5).toUpperCase(),
-          status: statusFinal,
-          valorTotal: 0.0,
-          tenant_id: tenantId,
-          createdAt: new Date(createdAt),
-        }
-      });
-
-      await prisma.pedidoHistorico.create({
-        data: {
-          pedido_id: pedidoSalvo.id,
-          status: statusFinal,
-          createdAt: new Date()
-        }
-      });
-     
-      return pedidoSalvo;
-
-    } catch (error: any) { 
-      throw error.message;
+  try {
+    if(!tenantId || !pedido ){
+      throw new Error('Falha ao salvar pedido')
     }
+
+    const pedidosSalvos = await this.createPedidoBanco(pedido, tenantId);
+    
+    if(pedidosSalvos){ 
+
+      const result = await this.saveHistorico(pedido, tenantId);
+
+      if (result){ return {status:200, message: 'Pedido salvo com sucesso!'}   }
+
+     }
+
+   
+
+  }  
+  
+  catch (error: any) { 
+    console.error("Erro crítico em salvarPedidoNoBanco:", error);
+    // Relançamos o erro com contexto para quem chamou o método
+    throw new Error(`Falha ao processar pedido ${pedido?.orderId}: ${error.message}`);
   }
+}
+
+async createPedidoBanco(pedido: IPedido, tenantId: string) {
+  // 1. Definição do De-Para de Status
+  const statusMap: Record<string, PedidoStatus> = {
+    'PLC': PedidoStatus.PLACED,
+    'CFM': PedidoStatus.CONFIRMED,
+    'DSP': PedidoStatus.DISPATCHED,
+    'CAN': PedidoStatus.CANCELLED,
+    'RTP': PedidoStatus.READY_TO_PICKUP
+  };
+
+  // 2. Extração Segura com fallback (importante para não quebrar o banco)
+  const statusMapeado = statusMap[pedido.code] || PedidoStatus.PLACED;
+
+  // 3. Operação Principal
+  const restPedidoSalvo = await prisma.pedido.upsert({
+    where: { uairango_id: String(pedido.id) }, // Garante busca pelo ID único
+    update: {
+      code: pedido.code,
+      fullCode: statusMapeado, // Atualiza para o status correto
+      updatedAt: new Date()
+    },
+    create: {     
+      uairango_id: String(pedido.id),
+      code: pedido.code,
+      fullCode: statusMapeado, // Salva o status mapeado
+      orderId: String(pedido.orderId),
+      merchantId: String(pedido.merchantId),
+      tenant_id: tenantId,
+      createdAt: pedido.createdAt ? new Date(pedido.createdAt) : new Date()
+    }
+  });
+
+  return restPedidoSalvo;
+}
+
+
+ 
+
+ async saveHistorico(pedidoSalvo: any, tenantId: string) {   
+    try {
+      // 4. Registro de Histórico (Auditoria) - Apenas CRIAR (Insert)
+
+    await prisma.pedidoHistorico.create({
+      data: {       
+        pedido_id: pedidoSalvo.id,
+        code: pedidoSalvo.code,       
+        fullCode: pedidoSalvo.fullCode, 
+        orderId: pedidoSalvo.orderId, 
+        merchantId: pedidoSalvo.merchantId,       
+        tenant_id: tenantId,
+        createdAt: new Date() // Registro imutável do momento da mudança
+      }
+    });
+
+      return { status: 200, message: 'Histórico registrado com sucesso!' };
+
+    } catch (error: any) {
+      console.error("Erro ao salvar histórico:", error);
+      throw new Error(`Erro no log de histórico: ${error.message}`);
+    }
+}
+   
+ 
 
   async buscarPedidoPorId(empresaId: string, config: any, orderId: string) {
     const token = await this.getValidToken(empresaId, config);
@@ -188,7 +251,8 @@ private async autenticar(config: ConfigUaiRango): Promise<AuthResponse> {
         createdAt: data.createdAt
       };
 
-      return await this.salvarPedidoNoBanco(empresaId, empresaId,);
+      return data || []
+
     } catch (error: any) {     
       throw error.response?.data || error.message;
     }
@@ -218,40 +282,35 @@ private async autenticar(config: ConfigUaiRango): Promise<AuthResponse> {
 }
 
 
-async confirmarPedidoUaiRango(tenantId:string, config: any, orderId: string): Promise<any> {
+async confirmarPedidoUaiRango(tenantId: string, token: string, orderId: string): Promise<any> {
+  try {    
 
-    try {
-      // Endpoint oficial conforme fornecido
-      const url = `https://merchant-api.uairango.com/order/v1.0/orders/${orderId}/confirm`;
-
-      const response = await axios.post(
-        url,
-        {}, // O endpoint não exige corpo, apenas o ID na URL
-        {
-          headers: {
-            'Authorization': `Bearer ${config?.access_token}`,
-            'Content-Type': 'application/json',
-            'accept': 'application/json',
-            'x-env': 'development',
-            'x-api-key': `${process.env.API_KEY}`, 
-            'tenant-id': tenantId
-          }
+    // O Axios espera: post(url, body, config)
+    const data = await axios.post(`https://merchant-api.uairango.com/order/v1.0/orders/${orderId}/confirm`,        
+      {}, // <--- CORREÇÃO: Corpo vazio (ou o payload necessário)
+      {
+        headers: {          
+          'Content-Type': 'application/json',          
+          'Authorization': `Bearer ${token}`,
+          'x-env': 'development',
+          'x-api-key': `${process.env.API_KEY}`, 
+          'tenant-id': tenantId
         }
-      );
+      }
+    );
 
-      return response.data;
-    } catch (error: any) {
+    return data;
 
-      // Tratamento de erro detalhado para facilitar o debug no log
-      const status = error.response?.status;
-      const message = error.response?.data?.message || error.message;
-      
-      console.error(`[UaiRango API] Erro ao confirmar pedido ${orderId}: ${status} - ${message}`);
-      
-      throw new Error(`Falha ao confirmar pedido na UaiRango: ${message}`);
-    }
-
+  } catch (error: any) {
+    const status = error.response?.status;
+    const message = error.response?.data?.message || error.message;
+    
+    // CORREÇÃO: O template string estava com um erro de sintaxe (faltava o pedidoId)
+    console.error(`[UaiRango API] Erro ao confirmar pedido ${orderId}: ${status} - ${message}`);
+    
+    throw new Error(`Falha ao confirmar pedido na UaiRango: ${message}`);
   }
+}
 
 
   async pedidoProntoRetirada(tenantId: string, config: any, orderId: string): Promise<any> {
@@ -327,4 +386,65 @@ async despacharPedidoUaiRango(tenantId: string, config: any, orderId: string): P
     throw new Error(errorMessage);
   }
 }
+
+async dispatchPedidoUaiRango(tenantId: string, token: string, orderId: string): Promise<any> {
+ 
+  try {
+   
+    const { data } = await axios.post(`https://merchant-api.uairango.com/order/v1.0/orders/${orderId}/dispatch`,
+      {}, // Corpo vazio, a menos que a documentação exija algo específico
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'accept': 'application/json',
+          'x-env': 'development', // Lembre-se de mudar para 'production' em breve
+          'x-api-key': `${process.env.API_KEY}`,
+          'tenant-id': tenantId
+        }
+      }
+    );
+
+    return data;
+
+  } catch (error: any) {
+    const status = error.response?.status;
+    const message = error.response?.data?.message || error.message;
+    
+    console.error(`[UaiRango API] Erro ao despachar pedido ${orderId}: ${status} - ${message}`);
+    throw new Error(`Falha ao despachar pedido na UaiRango: ${message}`);
+  }
+}
+
+
+async readyToPickupUaiRango(tenantId: string, token: string, orderId: string): Promise<any> {
+ 
+  try {
+   
+    const { data } = await axios.post(`hhttps://merchant-api.uairango.com/order/v1.0/orders/${orderId}/readyToPickup`,
+      {}, // Corpo vazio, a menos que a documentação exija algo específico
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'accept': 'application/json',
+          'x-env': 'development', // Lembre-se de mudar para 'production' em breve
+          'x-api-key': `${process.env.API_KEY}`,
+          'tenant-id': tenantId
+        }
+      }
+    );
+
+    return data;
+
+  } catch (error: any) {
+    const status = error.response?.status;
+    const message = error.response?.data?.message || error.message;
+    
+    console.error(`[UaiRango API] Erro ao despachar pedido de retirada ${orderId}: ${status} - ${message}`);
+    throw new Error(`Falha ao despachar pedido na UaiRango: ${message}`);
+  }
+}
+
+
 }

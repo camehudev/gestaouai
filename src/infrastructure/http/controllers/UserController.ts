@@ -13,21 +13,24 @@ export class UserController {
    * Cria um novo usuário vinculado a uma empresa
    */
   async store(req: Request, res: Response) {
+
+    console.log(req.body)
     try {
       const { empresaId } = req.params;
-      const { name, email, password, role } = req.body;
+      const { name, email, password, role, status  } = req.body;
 
       // Validação básica
-      if (!name || !email || !password) {
-        return res.status(400).json({ error: 'Nome, e-mail e senha são obrigatórios.' });
+      if (!name || !email || !password || !role || !status || !empresaId ) {
+        return res.status(400).json({ error: 'nome, e-mail, senha, active , role e empresa são obrigatórios.' });
       }
 
       const user = await this.userService.create({
         name,
         email,
-        password,
+        password,       
         empresaId,
-        role
+        role,
+        status
       });
 
       return res.status(201).json(user);
