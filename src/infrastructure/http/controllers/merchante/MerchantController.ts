@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { MerchantService } from '../../../../core/services/merchant/MerchantService';
+import { Console } from 'console';
 
 
 const merchantService = new MerchantService();
@@ -70,8 +71,9 @@ async getById(req: Request, res: Response) {
 
 async getStatus(req: Request, res: Response) {
   try {
+    
     const { empresaId, merchantId } = req.params;
-
+   
     if (!empresaId || !merchantId) {
       return res.status(400).json({ error: 'Parâmetros ausentes.' });
     }

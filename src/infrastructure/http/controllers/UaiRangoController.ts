@@ -1,9 +1,8 @@
-import { id } from 'zod/v4/locales/index.cjs';
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { UaiRangoService } from '../../../core/services/UaiRangoService';
-import { listAcknowledgment, ConfigUaiRango } from '../../../core/entities/Empresas';
 import { PedidoStatus } from 'core/entities/Pedidos';
+
 
 const prisma = new PrismaClient();
 const uaiService = new UaiRangoService();
@@ -60,10 +59,11 @@ export class UaiRangoController {
       
 
       // 3. Processamento (Enriquecendo com detalhes)
-      const pedidosDetalhados: any[] = [];         
+      const pedidosDetalhados: any[] = [];  
+      
+   await uaiService.salvarPedidoNoBanco(tenantId, eventos ) 
 
-     //await uaiService.salvarPedidoNoBanco(tenantId, eventos )     
-       
+        
     // 4. Retorno dos dados enriquecidos
       return res.json({
         status: 200,
@@ -106,9 +106,8 @@ async confirmarProcessamentoPelaRota(req: Request, res: Response) {
 
  async getDetails(req: Request, res: Response) {  
     try {
-     
-      const { id } = req.params; // ID do pedido
-       
+      const {id, orderId  } = req.params; // ID do pedido
+             
       const tenantId = req.headers['tenant-id'] as string;     
      
       if (!tenantId) {
@@ -133,13 +132,28 @@ async confirmarProcessamentoPelaRota(req: Request, res: Response) {
       }
 
       // 3. Agora chama o service passando os 3 argumentos: tenantId, pedidoId e o Token
-      const detalhes = await uaiService.getPedidoDetalhes(tenantId, id, tokenBanco);
+      const detalhes = await uaiService.getPedidoDetalhes(tenantId, orderId, tokenBanco);
       
       if (!detalhes) {
         return res.status(404).json({ error: "Pedido não encontrado na UaiRango ou token inválido." });
       }
+     
+     const result =  await uaiService.salvarDetalhesNoBanco(tenantId,detalhes, id)
 
-      return res.json(detalhes);
+     if(result.status === 200){
+
+       return res.json({
+        status: 200,
+        message: `Pedido Salvo com sucesso!`,
+        data:detalhes
+
+       })
+      
+     }
+
+
+
+      
     } catch (error: any) {   
       return res.status(400).json({ error: error.message });
     }

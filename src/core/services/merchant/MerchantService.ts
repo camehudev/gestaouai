@@ -183,9 +183,8 @@ async getMerchantStatus(empresaId: string, merchantId: string) {
     const token = await this.getValidToken(empresaId, config);
 
     // Endpoint de Status
-    const url = `https://merchant-api.uairango.com/merchant/v1.0/merchants/${merchantId}/status`;
-    
-    const { data } = await axios.get(url, {
+       
+    const { data } = await axios.get(`https://merchant-api.uairango.com/merchant/v1.0/merchants/${merchantId}/status`, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Accept': 'application/json',

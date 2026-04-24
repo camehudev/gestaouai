@@ -1,8 +1,7 @@
+import { Customer } from './../../../node_modules/.prisma/client/index.d';
 import axios from 'axios';
 import { PedidoStatus, PrismaClient } from '@prisma/client';
 import { ConfigUaiRango } from '../entities/Empresas';
-import { id } from 'zod/v4/locales/index.cjs';
-import { STATUS_CODES } from 'http';
 
 const prisma = new PrismaClient();
 
@@ -82,7 +81,7 @@ private async autenticar(config: ConfigUaiRango): Promise<AuthResponse> {
   }
 }
 
-  private async salvarTokenNoBanco(empresaId: string, authData: AuthResponse, configAtual: ConfigUaiRango) {
+private async salvarTokenNoBanco(empresaId: string, authData: AuthResponse, configAtual: ConfigUaiRango) {
     const dataExpiracao = new Date();
     dataExpiracao.setSeconds(dataExpiracao.getSeconds() + (Number(authData.expiresIn) || 3600));
 
@@ -138,22 +137,24 @@ private async autenticar(config: ConfigUaiRango): Promise<AuthResponse> {
   }
 
  // 1. Adicionamos o tenantId (empresaId) como parâmetro obrigatório
-async salvarPedidoNoBanco(tenantId: string, pedido: IPedido ) { 
+async salvarPedidoNoBanco(tenantId: string, pedido: IPedido) { 
 
   try {
     if(!tenantId || !pedido ){
       throw new Error('Falha ao salvar pedido')
     }
 
+    
+
     const pedidosSalvos = await this.createPedidoBanco(pedido, tenantId);
     
-    if(pedidosSalvos){ 
+    if(pedidosSalvos.id){ 
 
-      const result = await this.saveHistorico(pedido, tenantId);
-
-      if (result){ return {status:200, message: 'Pedido salvo com sucesso!'}   }
+     await this.saveHistorico(pedido, tenantId);
 
      }
+
+    return { status: 200, message: 'Pedido salvo com sucesso!' }
 
    
 
@@ -166,7 +167,29 @@ async salvarPedidoNoBanco(tenantId: string, pedido: IPedido ) {
   }
 }
 
-async createPedidoBanco(pedido: IPedido, tenantId: string) {
+// 1. Adicionamos o tenantId (empresaId) como parâmetro obrigatório
+async salvarDetalhesNoBanco(tenantId: string, detalhes: any, idPedido?: string ) { 
+ 
+
+  try {
+    if(!tenantId || !detalhes || !idPedido ){
+      throw new Error('Falha ao salvar pedido')
+    }
+
+    const pedidosSalvos = await this.createDetalhesBanco(tenantId, detalhes, idPedido);
+
+    return pedidosSalvos
+
+  }  
+  
+  catch (error: any) { 
+    console.error("Erro crítico em salvarPedidoNoBanco:", error);
+    // Relançamos o erro com contexto para quem chamou o método
+    throw new Error(`Falha ao processar pedido ${detalhes?.id}: ${error.message}`);
+  }
+}
+
+async createPedidoBanco(pedido: any, tenantId: string) {
   // 1. Definição do De-Para de Status
   const statusMap: Record<string, PedidoStatus> = {
     'PLC': PedidoStatus.PLACED,
@@ -177,55 +200,124 @@ async createPedidoBanco(pedido: IPedido, tenantId: string) {
   };
 
   // 2. Extração Segura com fallback (importante para não quebrar o banco)
-  const statusMapeado = statusMap[pedido.code] || PedidoStatus.PLACED;
+  const statusMapeado = statusMap[pedido[0].code] || PedidoStatus.PLACED;  
 
   // 3. Operação Principal
   const restPedidoSalvo = await prisma.pedido.upsert({
-    where: { uairango_id: String(pedido.id) }, // Garante busca pelo ID único
+    where: { uairango_id: String(pedido[0].id) }, // Garante busca pelo ID único
     update: {
-      code: pedido.code,
+      code: pedido[0].code,
       fullCode: statusMapeado, // Atualiza para o status correto
       updatedAt: new Date()
     },
     create: {     
-      uairango_id: String(pedido.id),
-      code: pedido.code,
+      uairango_id: String(pedido[0].id),
+      code: statusMapeado,
       fullCode: statusMapeado, // Salva o status mapeado
-      orderId: String(pedido.orderId),
-      merchantId: String(pedido.merchantId),
+      orderId: String(pedido[0].orderId),
+      merchantId: String(pedido[0].merchantId),
       tenant_id: tenantId,
-      createdAt: pedido.createdAt ? new Date(pedido.createdAt) : new Date()
+      item_pedido: null,
+      createdAt: pedido[0].createdAt ? new Date(pedido[0].createdAt) : new Date()
     }
-  });
+  }); 
+  
 
   return restPedidoSalvo;
 }
 
 
- 
+async createDetalhesBanco(tenantId: string, detalhes: any, idPedido: string) {
+  try {
+    if (!detalhes || !tenantId || !idPedido) {
+      throw new Error(`Erro ao enviar parâmetros - createDetalhesBanco`);
+    }
 
- async saveHistorico(pedidoSalvo: any, tenantId: string) {   
-    try {
-      // 4. Registro de Histórico (Auditoria) - Apenas CRIAR (Insert)
-
-    await prisma.pedidoHistorico.create({
-      data: {       
-        pedido_id: pedidoSalvo.id,
-        code: pedidoSalvo.code,       
-        fullCode: pedidoSalvo.fullCode, 
-        orderId: pedidoSalvo.orderId, 
-        merchantId: pedidoSalvo.merchantId,       
-        tenant_id: tenantId,
-        createdAt: new Date() // Registro imutável do momento da mudança
+    // 2. Garanta que o ID do cliente existe antes de prosseguir
+if (!detalhes.customer || ! detalhes.customer.id) {
+    throw new Error("Não foi possível obter o ID do cliente.");
+}
+  
+    const resultCliente = await this.getPedidoCreateCliente(detalhes.customer) 
+  
+    const restPedidoSalvo = await prisma.pedidoItem.upsert({
+      // 1. Onde ele vai procurar para decidir se cria ou atualiza
+      where: {idUaiRango: detalhes.id 
+      },
+      // 2. O que atualizar se encontrar o idUaiRango
+      update: {
+        orderTiming: detalhes.orderTiming,
+        displayId: detalhes.displayId,
+        items: detalhes.items,
+        delivery: detalhes.takeout,
+        total: detalhes.total,
+        customer_id: resultCliente.id
+        // Aqui você coloca o que pode mudar com o tempo
+      },
+      // 3. O que inserir se não encontrar nada
+      create: {        
+        idUaiRango: detalhes.id,
+        orderTiming: detalhes.orderTiming,
+        orderType: detalhes.orderType,
+        salesChannel: detalhes.salesChannel, // Corrigi o duplo 'l' de salesChannell
+        createdAt: detalhes.createdAt,
+        displayId: detalhes.displayId,
+        isTest: detalhes.isTest,
+        items: detalhes.items,
+        delivery: detalhes.takeout,
+        total: detalhes.total,
+        customer_id: resultCliente.id,
+        //pedido_id: idPedido,
       }
     });
 
-      return { status: 200, message: 'Histórico registrado com sucesso!' };
+   
 
-    } catch (error: any) {
-      console.error("Erro ao salvar histórico:", error);
-      throw new Error(`Erro no log de histórico: ${error.message}`);
-    }
+    return { 
+      status: 200, 
+      message: `PedidoItem ${restPedidoSalvo.idUaiRango} processado com sucesso!` 
+    };
+
+  } catch (error: any) {
+    throw new Error(`Erro no Upsert: ${error.message}`);
+  }
+} 
+
+ async saveHistorico(pedidoSalvo: any, tenantId: string) {   
+  try {
+    const p = Array.isArray(pedidoSalvo) ? pedidoSalvo[0] : pedidoSalvo;
+
+    if (!p || !p.id) return;
+
+    await prisma.pedidoHistorico.upsert({
+      // Onde ele verifica se já existe
+      where: {       
+          pedido_id: p.id,
+          fullCode: p.fullCode         
+      },
+      // Se já existir esse status para esse pedido, apenas atualiza o timestamp
+      update: {
+        updatedAt: new Date(), 
+        // Você pode atualizar o merchantId ou orderId se achar necessário
+      },
+      // Se não existir, cria o novo registro de histórico
+      create: {       
+        pedido_id: p.id,
+        code: p.code,       
+        fullCode: p.fullCode, 
+        orderId: p.orderId, 
+        merchantId: p.merchantId,       
+        tenant_id: tenantId,
+        createdAt: new Date()
+      }
+    });
+
+    return { status: 200, message: 'Histórico processado (Upsert)!' };
+
+  } catch (error: any) {
+    console.error("Erro no upsert de histórico:", error);
+    throw new Error(`Erro no log de histórico: ${error.message}`);
+  }
 }
    
  
@@ -445,6 +537,28 @@ async readyToPickupUaiRango(tenantId: string, token: string, orderId: string): P
     throw new Error(`Falha ao despachar pedido na UaiRango: ${message}`);
   }
 }
+
+async getPedidoCreateCliente(dadosCliente: any) {
+  // Usamos o id do Cliente como identificador único para não duplicar clientes
+  return await prisma.customer.upsert({
+    where: { idCliente: dadosCliente.id },
+    update: {
+      name: dadosCliente.name, // Atualiza o nome caso ele tenha mudado
+      updatedAt: dadosCliente.updateAt
+    },
+    create: {
+      idCliente: dadosCliente.id,     
+      name: dadosCliente.name,     
+      documentNumber: dadosCliente.documentNumbert,
+      ordersCountOnMerchant: dadosCliente.ordersCountOnMerchant,
+      phones: dadosCliente.phones,
+      createdAt: dadosCliente.createdAt
+    }
+  });
+}
+
+
+
 
 
 }
