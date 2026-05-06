@@ -161,6 +161,8 @@ async confirmarProcessamentoPelaRota(req: Request, res: Response) {
 
 async confirmarAceite(req: Request, res: Response) {
   const { orderId } = req.params; 
+  console.log(orderId)
+  
   // O tenant aqui deve ser o ID da empresa no SEU banco de dados (UUID)
   const tenantId = (req.headers['tenantid'] || req.headers['tenant-id']) as string; 
 
@@ -310,6 +312,8 @@ async readyToPickupAceite(req: Request, res: Response) {
     if (!empresa) return res.status(404).json({ error: 'Empresa não encontrada.' });
 
     const token = await uaiService.getValidToken(tenantId, empresa.configUaiRango as any);
+
+    //const pedidoEntregar = await uaiService.salvarPedidoNoBanco(tenantId, eventos ) 
 
     // 3. Chama o Service de Despacho usando o ID da UaiRango
     const resultado = await uaiService.readyToPickupUaiRango(tenantId, token, orderId);

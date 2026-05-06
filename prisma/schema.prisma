@@ -82,8 +82,7 @@ model Pedido {
   code            String
   fullCode        String
   orderId         String           
-  merchantId      String
-  item_pedido     String?           @unique // Adicione @unique para relação 1:1  
+  merchantId      String 
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 
@@ -96,12 +95,35 @@ model Pedido {
     
   enderecoEntrega PedidoEndereco?
   historico       PedidoHistorico[]
-  items           PedidoItem[] 
+  pedidoItem      PedidoItem[] 
 
   // 5. Índices para performance
   @@index([tenant_id])
   @@index([merchantId])
-  @@index([item_pedido])
+ 
+}
+
+model PedidoItem {
+  id                   String      @id @default(uuid())  
+  createdAt            String?
+  delivery             Json?
+  displayId            String?
+  idUaiRango           String      @unique        
+  isTest               Boolean?
+  items                Json?
+  orderTiming          String?
+  orderType            String?
+  salesChannel         String?
+  total                Json?
+  customer_id          String?
+  pedido_id            String?
+ 
+  
+  customer    Customer? @relation(fields: [customer_id], references: [idCliente])
+  pedido      Pedido?  @relation(fields: [pedido_id], references: [id]) 
+ 
+  payments             Payments[]
+
 }
 
 model PedidoEndereco {
@@ -117,27 +139,6 @@ model PedidoEndereco {
   pedido          Pedido   @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
 }
 
-model PedidoItem {
-  id                   String      @id @default(uuid())
-  pedido_id            String?
-  createdAt            String?
-  delivery             Json?
-  displayId            String?
-  idUaiRango           String      @unique        
-  isTest               Boolean?
-  items                Json?
-  orderTiming          String?
-  orderType            String?
-  salesChannel         String?
-  total                Json?
-  customer_id          String?
-  
-  customer    Customer? @relation(fields: [customer_id], references: [id])  
-  pedido      Pedido?   @relation(fields: [pedido_id], references: [id])
-
-  payments             Payments[]
-  
-}
 
 model Payments {
   id           String      @id @default(uuid())

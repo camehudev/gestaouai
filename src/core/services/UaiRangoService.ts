@@ -169,7 +169,6 @@ async salvarPedidoNoBanco(tenantId: string, pedido: IPedido) {
 
 // 1. Adicionamos o tenantId (empresaId) como parâmetro obrigatório
 async salvarDetalhesNoBanco(tenantId: string, detalhes: any, idPedido?: string ) { 
- 
 
   try {
     if(!tenantId || !detalhes || !idPedido ){
@@ -216,8 +215,7 @@ async createPedidoBanco(pedido: any, tenantId: string) {
       fullCode: statusMapeado, // Salva o status mapeado
       orderId: String(pedido[0].orderId),
       merchantId: String(pedido[0].merchantId),
-      tenant_id: tenantId,
-      item_pedido: null,
+      tenant_id: tenantId,     
       createdAt: pedido[0].createdAt ? new Date(pedido[0].createdAt) : new Date()
     }
   }); 
@@ -236,11 +234,18 @@ async createDetalhesBanco(tenantId: string, detalhes: any, idPedido: string) {
     // 2. Garanta que o ID do cliente existe antes de prosseguir
 if (!detalhes.customer || ! detalhes.customer.id) {
     throw new Error("Não foi possível obter o ID do cliente.");
-}
-  
-    const resultCliente = await this.getPedidoCreateCliente(detalhes.customer) 
-  
-    const restPedidoSalvo = await prisma.pedidoItem.upsert({
+} 
+
+  const resultCliente = await this.getPedidoCreateCliente(detalhes.customer)
+
+  console.log(resultCliente.data)
+  if (!resultCliente || !resultCliente.data) {
+    throw new Error("Falha crítica: Cliente não pôde ser gerado.");
+  }
+
+
+//Salva,atualiza ou cria detalhes de um pedido  
+const restPedidoSalvo = await prisma.pedidoItem.upsert({
       // 1. Onde ele vai procurar para decidir se cria ou atualiza
       where: {idUaiRango: detalhes.id 
       },
@@ -249,10 +254,10 @@ if (!detalhes.customer || ! detalhes.customer.id) {
         orderTiming: detalhes.orderTiming,
         displayId: detalhes.displayId,
         items: detalhes.items,
-        delivery: detalhes.takeout,
+        delivery: detalhes.takeout? detalhes.takout : detalhes?.delivery,
         total: detalhes.total,
-        customer_id: resultCliente.id
-        // Aqui você coloca o que pode mudar com o tempo
+        customer_id: resultCliente.data,        
+      
       },
       // 3. O que inserir se não encontrar nada
       create: {        
@@ -266,14 +271,12 @@ if (!detalhes.customer || ! detalhes.customer.id) {
         items: detalhes.items,
         delivery: detalhes.takeout,
         total: detalhes.total,
-        customer_id: resultCliente.id,
-        //pedido_id: idPedido,
+        customer_id: resultCliente?.data,
+        
       }
     });
 
-   
-
-    return { 
+   return { 
       status: 200, 
       message: `PedidoItem ${restPedidoSalvo.idUaiRango} processado com sucesso!` 
     };
@@ -375,8 +378,7 @@ if (!detalhes.customer || ! detalhes.customer.id) {
 
 
 async confirmarPedidoUaiRango(tenantId: string, token: string, orderId: string): Promise<any> {
-  try {    
-
+  try {       
     // O Axios espera: post(url, body, config)
     const data = await axios.post(`https://merchant-api.uairango.com/order/v1.0/orders/${orderId}/confirm`,        
       {}, // <--- CORREÇÃO: Corpo vazio (ou o payload necessário)
@@ -513,7 +515,7 @@ async readyToPickupUaiRango(tenantId: string, token: string, orderId: string): P
  
   try {
    
-    const { data } = await axios.post(`hhttps://merchant-api.uairango.com/order/v1.0/orders/${orderId}/readyToPickup`,
+    const { data } = await axios.post(`https://merchant-api.uairango.com/order/v1.0/orders/${orderId}/readyToPickup`,
       {}, // Corpo vazio, a menos que a documentação exija algo específico
       {
         headers: {
@@ -540,7 +542,8 @@ async readyToPickupUaiRango(tenantId: string, token: string, orderId: string): P
 
 async getPedidoCreateCliente(dadosCliente: any) {
   // Usamos o id do Cliente como identificador único para não duplicar clientes
-  return await prisma.customer.upsert({
+
+  const result = await prisma.customer.upsert({
     where: { idCliente: dadosCliente.id },
     update: {
       name: dadosCliente.name, // Atualiza o nome caso ele tenha mudado
@@ -555,6 +558,13 @@ async getPedidoCreateCliente(dadosCliente: any) {
       createdAt: dadosCliente.createdAt
     }
   });
+   
+  
+  return {
+    status: 200,
+    message: 'Cliente cadastradado com sucesso!',
+    data: result.idCliente
+  }
 }
 
 
