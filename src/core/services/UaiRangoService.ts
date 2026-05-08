@@ -567,6 +567,75 @@ async getPedidoCreateCliente(dadosCliente: any) {
   }
 }
 
+// No seu UaiRangoService.ts
+
+async getCancellationPedidos(orderId: string, tenantId: string, token: string) {  
+  
+  try {
+    // Substitua pela URL correta da UaiRango para motivos de cancelamento
+    const response = await axios.get(`https://merchant-api.uairango.com/order/v1.0/orders/${orderId}/cancellationReasons`,     
+      {
+          headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'accept': 'application/json',
+          'x-env': 'development', // Lembre-se de mudar para 'production' em breve
+          'x-api-key': `${process.env.API_KEY}`,
+          'tenant-id': tenantId
+        }
+      }
+    ); 
+
+    if(!response || !response.data){
+      // se a resposta for vazia ou não tiver dados, retornamos um array vazio ou uma mensagem padrão
+      return {status:200, message: 'Este pedido não possui motivos de cancelamento disponíveis.'}
+    }
+    
+    return response.data; // Geralmente retorna um Array de objetos { id, description }
+
+  } catch (error: any) {
+
+    console.error("Erro ao buscar motivos de cancelamento na UaiRango:", error.response?.data || error.message);
+    throw new Error("Não foi possível obter a lista de motivos.");
+  }
+}
+
+async getSolicitarCancellationPedidos(orderId: string, tenantId: string, token: string, rason:any) {  
+  
+  try {
+    // Substitua pela URL correta da UaiRango para motivos de cancelamento
+    const response = await axios.post(`https://merchant-api.uairango.com/order/v1.0/orders/${orderId}/requestCancellation`, 
+      {
+       "cancellationCode": rason?.cancellationCode,
+       "reason": rason?.description
+      },
+      {      
+          headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'accept': 'application/json',
+          'x-env': 'development', // Lembre-se de mudar para 'production' em breve
+          'x-api-key': `${process.env.API_KEY}`,
+          'tenant-id': tenantId
+        }
+      }
+    ); 
+
+    if(!response){
+      // se a resposta for vazia ou não tiver dados, retornamos um array vazio ou uma mensagem padrão
+      return {status:200, message: 'Pedido não elegivel para cancelamento.'}
+    }
+    
+    return response; // Geralmente retorna um Array de objetos { id, description }
+
+  } catch (error: any) {
+
+    console.error("Erro ao buscar cancelamento na UaiRango:", error.response || error.message);
+    throw new Error("Não foi possível obter a lista de motivos.");
+  }
+}
+
+
 
 
 

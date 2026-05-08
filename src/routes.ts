@@ -156,6 +156,11 @@ router.post('/despachar/:orderId', uaiController.dispatchAceite);
 // Rota para despachar pedido (pronto para retirada)
 router.post('/readyToPickup/:orderId', uaiController.readyToPickupAceite);
 
+// CANCELAMENTOS
+// Exemplo: GET /api/pedidos/cancelamento/motivos
+router.get('/pedidos/cancelamento/motivos/:orderId/:tenantId', (req, res) => uaiController.listCancellationReasons(req, res));
+router.post('/pedidos/cancelamento/solicitar/:orderId/:tenantId', (req, res) => uaiController.solicitarCancellationReasons(req, res));
+
 
 
 export default router;

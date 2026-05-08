@@ -339,4 +339,62 @@ async readyToPickupAceite(req: Request, res: Response) {
   }
 }
 
+
+// No seu UaiRangoController.ts
+
+async listCancellationReasons(req: Request, res: Response) {
+  try {
+      const {orderId, tenantId} = req.params; // ID do pedido para o qual queremos os motivos de cancelamento    
+    
+
+       // 2. Busca a empresa e o Token
+      const empresa = await prisma.empresa.findFirst({
+        where: { tenant_id: tenantId }
+      });
+
+    if (!empresa) return res.status(404).json({ error: 'Empresa não encontrada.' });
+
+    const token = await uaiService.getValidToken(tenantId, empresa.configUaiRango as any);
+
+    // Se precisar de merchantId ou algo do tipo, extraia do req.params ou req.user
+    const reasons = await uaiService.getCancellationPedidos(orderId, tenantId, token);
+    
+    return res.status(200).json(reasons);
+
+  } catch (error: any) {
+    return res.status(500).json({ 
+      error: "Erro ao listar motivos", 
+      message: error.message 
+    });
+  }
+}
+
+async solicitarCancellationReasons(req: Request, res: Response) {
+  try {
+      const {orderId, tenantId} = req.params; // ID do pedido para o qual queremos os motivos de cancelamento    
+      const { reason } = req.body; // Motivo de cancelamento escolhido pelo cliente
+    
+
+       // 2. Busca a empresa e o Token
+      const empresa = await prisma.empresa.findFirst({
+        where: { tenant_id: tenantId }
+      });
+
+    if (!empresa) return res.status(404).json({ error: 'Empresa não encontrada.' });
+
+    const token = await uaiService.getValidToken(tenantId, empresa.configUaiRango as any);
+
+    // Se precisar de merchantId ou algo do tipo, extraia do req.params ou req.user
+    const reasons = await uaiService.getSolicitarCancellationPedidos(orderId, tenantId, token, reason);
+    
+    return res.status(200).json(reasons);
+
+  } catch (error: any) {
+    return res.status(500).json({ 
+      error: "Erro cancelar pedido", 
+      message: error.message 
+    });
+  }
+}
+
 }
