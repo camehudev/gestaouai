@@ -14,7 +14,6 @@ export class UserController {
    */
   async store(req: Request, res: Response) {
 
-    console.log(req.body)
     try {
       const { empresaId } = req.params;
       const { name, email, password, role, status  } = req.body;

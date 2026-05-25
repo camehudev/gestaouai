@@ -161,7 +161,6 @@ async confirmarProcessamentoPelaRota(req: Request, res: Response) {
 
 async confirmarAceite(req: Request, res: Response) {
   const { orderId } = req.params; 
-  console.log(orderId)
   
   // O tenant aqui deve ser o ID da empresa no SEU banco de dados (UUID)
   const tenantId = (req.headers['tenantid'] || req.headers['tenant-id']) as string; 
@@ -372,8 +371,8 @@ async listCancellationReasons(req: Request, res: Response) {
 async solicitarCancellationReasons(req: Request, res: Response) {
   try {
       const {orderId, tenantId} = req.params; // ID do pedido para o qual queremos os motivos de cancelamento    
-      const { reason } = req.body; // Motivo de cancelamento escolhido pelo cliente
-    
+      const { payload } = req.body; // Motivo de cancelamento escolhido pelo cliente
+   
 
        // 2. Busca a empresa e o Token
       const empresa = await prisma.empresa.findFirst({
@@ -385,7 +384,7 @@ async solicitarCancellationReasons(req: Request, res: Response) {
     const token = await uaiService.getValidToken(tenantId, empresa.configUaiRango as any);
 
     // Se precisar de merchantId ou algo do tipo, extraia do req.params ou req.user
-    const reasons = await uaiService.getSolicitarCancellationPedidos(orderId, tenantId, token, reason);
+    const reasons = await uaiService.getSolicitarCancellationPedidos(orderId, tenantId, token, payload);
     
     return res.status(200).json(reasons);
 

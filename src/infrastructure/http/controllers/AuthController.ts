@@ -14,18 +14,16 @@ export class AuthController {
         return res.status(400).json({ error: 'E-mail e senha são obrigatórios.' });
       } 
 
-      const result = await authService.login(email, password);     
-          
+      const result = await authService.login(email, password);    
+ 
       res.cookie('token', result.token, {
         httpOnly: true, // Impede acesso via JavaScript
         secure: process.env.NODE_ENV === 'production', // Apenas HTTPS
         maxAge: 6 * 60 * 60 * 1000, // 6 horas em milissegundos
         //maxAge: 35 * 1000, // 30 segundos exatos
         sameSite: 'strict'
-      });
-      
+      });     
 
-      
       return res.json(result);
 
     } catch (error: any) {

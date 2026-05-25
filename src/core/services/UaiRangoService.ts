@@ -238,7 +238,6 @@ if (!detalhes.customer || ! detalhes.customer.id) {
 
   const resultCliente = await this.getPedidoCreateCliente(detalhes.customer)
 
-  console.log(resultCliente.data)
   if (!resultCliente || !resultCliente.data) {
     throw new Error("Falha crítica: Cliente não pôde ser gerado.");
   }

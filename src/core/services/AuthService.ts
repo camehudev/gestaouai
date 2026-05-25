@@ -30,7 +30,7 @@ export class AuthService {
       {          
         name: user.name,
         //empresaId: user.empresaId, 
-        //ole: user.role 
+        role: user.role 
       }, 
       JWT_SECRET, 
       { expiresIn: '1d' } // Token vale por 1 dia

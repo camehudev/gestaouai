@@ -74,56 +74,41 @@ model Category {
 }
 
 model Pedido {
-  // 1. Chave primária única (Interna do seu sistema)
-  id              String           @id @default(uuid())  
-
-  // 2. ID da integração (Uairango) como único para buscas rápidas
+  id              String           @id @default(uuid())
   uairango_id     String           @unique
-  code            String
-  fullCode        String
-  orderId         String           
-  merchantId      String 
+  tenant_id       String
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
-
-  // 3. Campo escalar necessário para a relação (Foreign Key)
-  tenant_id       String
-
-  // 4. Definição da relação usando o campo acima
-  empresa         Empresa          @relation(fields: [tenant_id], references: [id]) 
-  
-    
+  code            String
+  fullCode        String
+  merchantId      String
+  orderId         String
+  empresa         Empresa          @relation(fields: [tenant_id], references: [id])
   enderecoEntrega PedidoEndereco?
-  historico       PedidoHistorico[]
-  pedidoItem      PedidoItem[] 
+  historico       PedidoHistorico?
+  pedidoItem      PedidoItem[]
 
-  // 5. Índices para performance
   @@index([tenant_id])
   @@index([merchantId])
- 
 }
 
 model PedidoItem {
-  id                   String      @id @default(uuid())  
-  createdAt            String?
-  delivery             Json?
-  displayId            String?
-  idUaiRango           String      @unique        
-  isTest               Boolean?
-  items                Json?
-  orderTiming          String?
-  orderType            String?
-  salesChannel         String?
-  total                Json?
-  customer_id          String?
-  pedido_id            String?
- 
-  
-  customer    Customer? @relation(fields: [customer_id], references: [idCliente])
-  pedido      Pedido?  @relation(fields: [pedido_id], references: [id]) 
- 
-  payments             Payments[]
-
+  id           String     @id @default(uuid())
+  createdAt    String?
+  delivery     Json?
+  displayId    String?
+  idUaiRango   String     @unique
+  isTest       Boolean?
+  items        Json?
+  orderTiming  String?
+  orderType    String?
+  salesChannel String?
+  total        Json?
+  customer_id  String?
+  pedido_id    String?
+  payments     Payments[]
+  customer     Customer?  @relation(fields: [customer_id], references: [idCliente])
+  pedido       Pedido?    @relation(fields: [pedido_id], references: [id])
 }
 
 model PedidoEndereco {
@@ -138,7 +123,6 @@ model PedidoEndereco {
   createdAt       DateTime @default(now())
   pedido          Pedido   @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
 }
-
 
 model Payments {
   id           String      @id @default(uuid())
@@ -162,55 +146,49 @@ model Customer {
   phones                String[]
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
-
   CustomerToPedidoItem  CustomerToPedidoItem[]
   itens                 PedidoItem[]
-  
+
   @@index([idCliente])
 }
 
 model PedidoHistorico {
-  id          String   @id @default(uuid()) 
-  pedido_id   String   @unique
-  code        String
-  fullCode    String
-  orderId     String   
-  merchantId  String
-  tenant_id   String
-  
-  // CORRIGIDO: Data deve ser DateTime
-  createdAt   DateTime @default(now()) 
-  updatedAt   DateTime @default(now())
-
-  // Mantemos a relação usando o ID da Uairango
-  pedido      Pedido   @relation(fields: [pedido_id], references: [uairango_id])
+  id         String   @id @default(uuid())
+  pedido_id  String   @unique
+  code       String
+  fullCode   String
+  merchantId String
+  orderId    String
+  tenant_id  String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @default(now())
+  pedido     Pedido   @relation(fields: [pedido_id], references: [uairango_id])
 
   @@index([pedido_id, fullCode])
   @@index([tenant_id])
 }
 
 model User {
-  id        String   @id @default(uuid())
+  id        String     @id @default(uuid())
   name      String
-  email     String   @unique
+  email     String     @unique
   password  String
-  role      Role @default(USER)
-  status    UserStatus @default(ATIVO) // Substituindo o booleano 'active'
   empresaId String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  empresa   Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  role      Role       @default(USER)
+  status    UserStatus @default(ATIVO)
+  empresa   Empresa    @relation(fields: [empresaId], references: [id], onDelete: Cascade)
 
   @@index([empresaId])
   @@map("users")
 }
 
 model CustomerToPedidoItem {
-  A          String
-  B          String
-  Customer   Customer   @relation(fields: [A], references: [id], onDelete: Cascade, map: "_CustomerToPedidoItem_A_fkey")
-  
+  A        String
+  B        String
+  Customer Customer @relation(fields: [A], references: [id], onDelete: Cascade, map: "_CustomerToPedidoItem_A_fkey")
+
   @@id([A, B], map: "_CustomerToPedidoItem_AB_pkey")
   @@index([B], map: "_CustomerToPedidoItem_B_index")
 }
@@ -220,6 +198,7 @@ enum Role {
   ADM_EMPRESA
   OPERADOR
   USER
+  USER_LKD
 }
 
 enum UserStatus {
