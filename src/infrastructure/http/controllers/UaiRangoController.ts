@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { UaiRangoService } from '../../../core/services/UaiRangoService';
-import { PedidoStatus } from 'core/entities/Pedidos';
+import { pedidoStatus } from 'core/entities/Pedidos';
 
 
 const prisma = new PrismaClient();
@@ -231,7 +231,7 @@ async despacharPedido(req: Request, res: Response) {
     // 2. Atualiza o banco local
     await prisma.pedido.update({
       where: { uairango_id: orderId },
-      data: { fullCode: PedidoStatus.DISPATCHED }
+      data: { fullCode: pedidoStatus.DISPATCHED }
     });
 
     return res.json({ success: true, message: "Pedido marcado como 'Em Trânsito'!" });
@@ -270,7 +270,7 @@ async dispatchAceite(req: Request, res: Response) {
     // 4. (Opcional) Atualiza o status local no seu banco de dados
     // await prisma.pedido.update({
     //   where: { id: orderId },
-    //   data: { fullCode: PedidoStatus.DISPATCHED }
+    //   data: { fullCode: pedidoStatus.DISPATCHED }
     // });
 
     return res.json({ 
@@ -320,7 +320,7 @@ async readyToPickupAceite(req: Request, res: Response) {
     // 4. (Opcional) Atualiza o status local no seu banco de dados
     // await prisma.pedido.update({
     //   where: { id: orderId },
-    //   data: { fullCode: PedidoStatus.DISPATCHED }
+    //   data: { fullCode: pedidoStatus.DISPATCHED }
     // });
 
     return res.json({ 

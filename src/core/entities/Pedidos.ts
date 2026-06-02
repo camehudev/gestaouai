@@ -1,4 +1,4 @@
-export enum PedidoStatus {
+export enum pedidoStatus {
   RECEIVED = 'RECEIVED',
   CONFIRMED = 'CONFIRMED',
   DISPATCHED = 'DISPATCHED',
@@ -11,7 +11,7 @@ export class Pedido {
     public readonly id: string,
     public readonly externalId: string,
     public readonly tenant_id: string, // Unificado com o padrão do banco
-    public status: PedidoStatus,
+    public status: pedidoStatus,
     public valorTotal: number,
     public readonly createdAt: Date,
     public displayId?: string,         // Adicionado para o ID amigável da UaiRango
@@ -21,7 +21,7 @@ export class Pedido {
 
   // Regra de negócio: Garante integridade antes de chamar o banco
   podeSerCancelado(): boolean {
-    const statusNaoCancelaveis = [PedidoStatus.DISPATCHED, PedidoStatus.CANCELLED];
+    const statusNaoCancelaveis = [pedidoStatus.DISPATCHED, pedidoStatus.CANCELLED];
     return !statusNaoCancelaveis.includes(this.status);
   }
 }
