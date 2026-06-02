@@ -1,11 +1,18 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { UaiRangoService } from '../../../core/services/UaiRangoService';
-import { pedidoStatus } from 'core/entities/Pedidos';
-
 
 const prisma = new PrismaClient();
 const uaiService = new UaiRangoService();
+
+enum StatusDoPedido {
+  RECEIVED = 'RECEIVED',
+  CONFIRMED = 'CONFIRMED',
+  DISPATCHED = 'DISPATCHED',
+  READY = 'READY',
+  CANCELLED = 'CANCELLED'
+}
+
 
 export class UaiRangoController {
 
@@ -231,7 +238,7 @@ async despacharPedido(req: Request, res: Response) {
     // 2. Atualiza o banco local
     await prisma.pedido.update({
       where: { uairango_id: orderId },
-      data: { fullCode: pedidoStatus.DISPATCHED }
+      data: { fullCode: StatusDoPedido.DISPATCHED }
     });
 
     return res.json({ success: true, message: "Pedido marcado como 'Em Trânsito'!" });
@@ -266,13 +273,7 @@ async dispatchAceite(req: Request, res: Response) {
 
     // 3. Chama o Service de Despacho usando o ID da UaiRango
     const resultado = await uaiService.dispatchPedidoUaiRango(tenantId, token, orderId);
-    
-    // 4. (Opcional) Atualiza o status local no seu banco de dados
-    // await prisma.pedido.update({
-    //   where: { id: orderId },
-    //   data: { fullCode: pedidoStatus.DISPATCHED }
-    // });
-
+  
     return res.json({ 
       message: "Pedido despachado com sucesso!", 
       data: resultado 
@@ -316,12 +317,6 @@ async readyToPickupAceite(req: Request, res: Response) {
 
     // 3. Chama o Service de Despacho usando o ID da UaiRango
     const resultado = await uaiService.readyToPickupUaiRango(tenantId, token, orderId);
-    
-    // 4. (Opcional) Atualiza o status local no seu banco de dados
-    // await prisma.pedido.update({
-    //   where: { id: orderId },
-    //   data: { fullCode: pedidoStatus.DISPATCHED }
-    // });
 
     return res.json({ 
       message: "Pedido pronto para retirada com sucesso!", 

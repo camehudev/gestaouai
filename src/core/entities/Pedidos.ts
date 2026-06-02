@@ -6,6 +6,7 @@ export enum pedidoStatus {
   CANCELLED = 'CANCELLED'
 }
 
+
 export class Pedido {
   constructor(
     public readonly id: string,
